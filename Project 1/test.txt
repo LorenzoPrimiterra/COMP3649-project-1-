@@ -1,0 +1,29 @@
+#*******************************************************************************
+#AUTHOR:Lorenzo Primiterra
+ #COURSE: COMP3649
+ #INSTRUCTOR: Marc 
+ #DATE: January 22, 2026
+
+# FILE: test.txt
+
+# SUMMARY: A read file that tests some of the specific grammar.
+
+    Needed tests:
+     - If an operation occurs:
+            - operations cannot begin or end lines. 
+            - To the left or right of the operation there must be a valid symbol.
+            - The grammar cannot have repeated operators.
+            - Assignments CAN occur, etc. a = b
+            - only valid operators are allowed based on the language requirements,
+   
+
+#*************************************
+#*************************************
+
++ = a + 1
+t1 = a * 4
+t2 = t1 + 1
+t3 = a * 3
+b = t2 – t3
+t4 = b / 2
+d = c + t5
