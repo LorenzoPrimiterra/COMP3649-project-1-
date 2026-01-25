@@ -14,6 +14,21 @@ from typing import List
 #       [destination, operand1, operator, optional:operand2]
 #
 #Output: A member of the Operation class, with a destination, operation, and operator(s)
+
+
+#Purpose: This class is used as the structure to hold our Three-address intermediate 
+#         Representation, as well as our assembly. Operands default to null, but error 
+#         handling should prevent the code operation class from being an empty insert into
+#         a destination address or register.
+#         Class initializer is in prefix notation.
+class Operation:
+    def __init__(self, destination, operator, operand1=None, operand2=None):
+        self.destination = destination
+        self.operator = operator
+        self.operand1 = operand1
+        self.operand2 = operand2
+
+        
 def TokenOperizer(tokens: List[str])->Operation:
     op = Operation(tokens[0], tokens[2], tokens[1])
     if(len(tokens)>3):
@@ -32,15 +47,3 @@ def OperatorPrinter(operators: List[str]) -> None:
 #         out.
 def LivenessPrinter(livevars: List[str]) -> None:
     print("Active: ".join(livevars))
-
-#Purpose: This class is used as the structure to hold our Three-address intermediate 
-#         Representation, as well as our assembly. Operands default to null, but error 
-#         handling should prevent the code operation class from being an empty insert into
-#         a destination address or register.
-#         Class initializer is in prefix notation.
-class Operation:
-    def __init__(destination, operator, operand1=None, operand2=None):
-        self.destination = destination
-        self.operator = operator
-        self.operand1 = operand1
-        self.operand2 = operand2
