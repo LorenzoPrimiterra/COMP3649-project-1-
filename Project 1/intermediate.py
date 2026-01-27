@@ -54,14 +54,7 @@ def TokenOperizer(tokens: List[str])->Operation:
         op.operand2 = tokens[3]
     return op
 
-#Purpose: This Simply takes a list of all the operators and operations and prints them out.
-def OperatorPrinter(operators: List[str]) -> None:
-    for operation in operators:
-        if(operation.operator == "="):
-            print(f"{operation.destination} = {operation.operand1}") #if(operation.operand2 != None):
-        else:
-            print(f"{operation.destination} = {operation.operand1} {operation.operator} {operation.operand2}")
-    
+
 
 class IntermediateCode: # TO DO
     """
@@ -78,7 +71,16 @@ class IntermediateCode: # TO DO
         if op is not None:
             self.oplist.append(op)
     #This method is just a lazy and simple abstraction to insert an operation.
-    def insert(self, op:Operation):
+    def insert(self, op:Operation)-> None:
         self.oplist.append(op)
+    #Purpose: This Simply takes a list of all the operators and operations and prints them out.
+    def OperatorPrinter(self)-> None:
+        if self.oplist == []:
+            for operation in self.oplist:
+                if(operation.operator == "="):
+                    print(f"{operation.destination} = {operation.operand1}")
+                else:
+                    print(f"{operation.destination} = {operation.operand1} {operation.operator} {operation.operand2}")
+    
 
         
