@@ -1,4 +1,3 @@
-# parser.py
 """
 Parser module for COMP 3649 register-allocation project (Week 3).
 
@@ -21,8 +20,6 @@ import string
 import re
 from errors import ParseError
 from intermediate import Operation, IntermediateCode
-
-
 
 
 def readIntermediateCode(f: TextIO) -> IntermediateCode:
@@ -69,12 +66,7 @@ def readIntermediateCode(f: TextIO) -> IntermediateCode:
 
     live_out = parse_live_line(prev, operations)
 
-    #return IntermediateCode(operations, live_out)
-
-      
-      
-
-
+    return IntermediateCode(operations, live_out)  
 
 def tokenize_line(line: str) -> List[str]:
     """
@@ -93,8 +85,7 @@ def tokenize_line(line: str) -> List[str]:
     Raises:
       ParseError if tokenization fails or results in an invalid token sequence.
     """
-def tokenize_line(line: str) -> List[str]:
- 
+
     # Remove surrounding whitespace
     line = line.strip()
     if not line:

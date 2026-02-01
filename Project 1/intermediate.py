@@ -1,4 +1,3 @@
-# intermediate.py
 """
 Intermediate Representation (IR) module.
 
@@ -35,52 +34,64 @@ class Operation:
             return f"{self.destination} = -{self.operand1}"
         return f"{self.destination} = {self.operand1} {self.operator} {self.operand2}"
 
-#Purpose: This takes a line and converts it into tokens, which are returned in an operator 
-#         class. Supports assignment inputs (e.g. x = a). 
-# 
-#Assumptions:
-#   Assumes tokens are stored in infix notation e.g. x x + 1
-#   Assumes that quick operators are decomposed and broken into their subparts
-#   (e.g. x += 1 is changed to x = x + 1)
-#   Assumes that tokens have superfluous operators removed, e.g. no equality if not an assignment operator
-#
-#Input: A tokenized string, given as a list. List expected to have the format below:
-#       [destination, operand1, operator, optional:operand2]
-#
-#Output: A member of the Operation class, with a destination, operation, and operator(s)
-def TokenOperizer(tokens: List[str])->Operation:
-    op = Operation(tokens[0], tokens[2], tokens[1])
-    if(len(tokens)>3):
-        op.operand2 = tokens[3]
-    return op
 
 
-
-class IntermediateCode: # TO DO
+class IntermediateCode: 
     """
-    Represents a full basic block:
-    - a list of Operations
-    - the list of live-out variables (from the final 'live:' line)
+    Represents a full basic block of intermediate code.
 
-    t1 = a * 4      ← one operation
-    t2 = t1 + 1     ← one operation
-    b  = t2 - a     ← one operation
-    live: b
+    The block consists of:
+      - a list of three-address instructions (Operation objects)
+      - a list of variables that are live on exit from the block
+
+    Example:
+        t1 = a * 4
+        t2 = t1 + 1
+        b  = t2 - a
+        live: b
+
+    This class acts as a container for the IR and provides simple support
+    routines so that other modules (parser, liveness analysis, code
+    generation) can safely access and display the block.
     """
-    def __init__(self, op:Operation = None, oplist: List[Operation] = []):
-        if op is not None:
-            self.oplist.append(op)
-    #This method is just a lazy and simple abstraction to insert an operation.
+
+    def __init__(self, oplist: List[Operation] = None, live_out: List[str] = None):
+        """
+        Initialize an IntermediateCode object.
+
+        Parameters:
+          oplist   : list of Operation objects in program order
+          live_out : list of variable names live at block exit
+
+        Both parameters are optional; empty lists are used if none are provided.
+        """
+        self.oplist = list(oplist) if oplist is not None else []
+        self.live_out = list(live_out) if live_out is not None else []
+        
+        self.live_before = None
+        self.live_after = None
+
+    def compute_liveness_info(self) -> None:
+        """
+        Compute and store liveness sets on this IntermediateCode object.
+        """
+        from liveness import compute_liveness # local import, otherwise causes circular imports 
+        self.live_before, self.live_after = compute_liveness(self.oplist, set(self.live_out))
+
+
     def insert(self, op:Operation)-> None:
+        """
+        Append a single Operation to the end of the instruction sequence.
+        """
         self.oplist.append(op)
-    #Purpose: This Simply takes a list of all the operators and operations and prints them out.
-    def OperatorPrinter(self)-> None:
-        if self.oplist == []:
-            for operation in self.oplist:
-                if(operation.operator == "="):
-                    print(f"{operation.destination} = {operation.operand1}")
-                else:
-                    print(f"{operation.destination} = {operation.operand1} {operation.operator} {operation.operand2}")
     
+    def __str__(self) -> str:
+        """
+        Return the entire basic block as a formatted string.
+        The output mirrors the original input format.
+        """
+        lines = [str(op) for op in self.oplist]
+        lines.append("live: " + ", ".join(self.live_out))
+        return "\n".join(lines)
 
         

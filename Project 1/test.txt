@@ -1,2 +1,4 @@
-4 = a * 2
-live: a
+a = a + 1
+t1 = a * 2
+b = t1 / 3
+live: a,b

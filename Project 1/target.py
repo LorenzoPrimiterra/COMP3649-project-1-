@@ -1,32 +1,30 @@
-# target.py
 """
 Target code representation (assembly) module.
 """
-from dataclasses import dataclass
 from typing import List
 
-"""
-AsmInstruction: 
 
-Represents a single assembly language instruction.
-
-An instruction consists of:
-    - an opcode (e.g., ADD, SUB, MUL, DIV, MOV)
-    - an optional source operand
-    - an optional destination operand
-
-Supported forms:
-    opcode
-    opcode src
-    opcode src,dst
-
-Examples:
-    ADD #1,R0
-    MOV R1,a
-    MUL R2,R3
-"""
-@dataclass(frozen=True)
 class AsmInstruction:
+    """
+    AsmInstruction: 
+
+    Represents a single assembly language instruction.
+
+    An instruction consists of:
+        - an opcode (e.g., ADD, SUB, MUL, DIV, MOV)
+        - an optional source operand
+        - an optional destination operand
+
+    Supported forms:
+        opcode
+        opcode src
+        opcode src,dst
+
+    Examples:
+        ADD #1,R0
+        MOV R1,a
+        MUL R2,R3
+    """
     opcode: str
     src: str = None
     dst: str = None
@@ -39,15 +37,16 @@ class AsmInstruction:
         return f"{self.opcode} {self.src},{self.dst}"  # Return a properly formatted assembly instruction string.
 
 
-"""
-TargetCode: 
 
-Represents a sequence of assembly instructions corresponding to a single basic block of generated target code.
-
-This class serves as a container for AsmInstruction objects and provides support routines for constructing and printing the
-target code sequence.
-"""
 class TargetCode:
+    """
+    TargetCode: 
+
+    Represents a sequence of assembly instructions corresponding to a single basic block of generated target code.
+
+    This class serves as a container for AsmInstruction objects and provides support routines for constructing and printing the
+    target code sequence.
+    """
     def __init__(self) -> None:
         self.instructions: List[AsmInstruction] = []
 

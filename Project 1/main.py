@@ -1,4 +1,3 @@
-# main.py
 import sys
 from errors import ParseError
 from parser import readIntermediateCode
@@ -22,7 +21,16 @@ def main() -> int:
         return 2
    
     print(code)
+    code.compute_liveness_info()
+
+
+    for i, op in enumerate(code.oplist):                    # code section is to see output clearly 
+        print(f"{i}: {op}")
+        print("  before:", sorted(code.live_before[i]))
+        print("  after :", sorted(code.live_after[i]))      # REMOVE BEFORE SUBMISSION
+
     return 0
+
 
 if __name__ == "__main__":
     main()
