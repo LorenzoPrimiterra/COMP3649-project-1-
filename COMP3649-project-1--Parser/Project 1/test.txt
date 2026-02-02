@@ -1,0 +1,17 @@
+a = 5 
+b = a + 1
+c = b + 2
+a = 5 
+b = a + 1
+c = b + 2
+a = 5 
+b = a + 1
+c = b + 2
+a = 5 
+b = a + 1
+c = b + 2
+a = 5 
+b = a + 1
+c = b + 2
+
+live: c, b, y
