@@ -68,6 +68,8 @@ def readIntermediateCode(f: TextIO) -> IntermediateCode:
 
     return IntermediateCode(operations, live_out)  
 
+
+
 def tokenize_line(line: str) -> List[str]:
     """
     Break a single line of intermediate code into tokens.
@@ -108,10 +110,89 @@ def tokenize_line(line: str) -> List[str]:
       valid_tokens.append(t)
    
     return valid_tokens
+
         
+""" 
+Below defines the main read3AddrInstruction function and all its complimentary helper functions consisting of:
+(1) is_valid_variable
+(2) is_valid_operand
+(3) validate_length_3
+(4) validate_length_4
+(5) validate_length_5 
+(6) dest_equals_source_check
+
+ """
+
+
+def is_valid_variable(s: str) -> bool:
+    """
+    Check if string is a valid variable name.
+    """
+    return bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", s))
 
 
 
+def is_valid_operand(s: str) -> bool:
+    """
+    Checkk if string is a valid operand (variable or integer literal)..
+    """
+    is_var = re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", s)
+    is_int = re.fullmatch(r"-?\d+", s)
+    
+    if is_var:
+        return True
+    if is_int:
+        return True
+    return False
+
+
+
+def validate_length_3(tokens):
+    """
+    Validate and handle dst = src format.
+    """
+    src = tokens[2]
+
+    if not is_valid_operand(src):
+        raise ParseError("Invalid source within [dst = src] format.")
+    
+
+
+def validate_length_4(tokens):
+    """
+    Validate and handle dst = -src format.
+    """
+    negative = tokens[2]
+    src = tokens[3]
+
+    if negative != "-":
+        raise ParseError("Expected unary '-' in [dst = -src] format.")
+
+    if not is_valid_operand(src):
+        raise ParseError("Invalid source within [dst = -src] format.")
+    
+
+
+def validate_length_5(tokens):
+    """
+    Validate and handle dst = src1 op src2 format.
+    """
+    src1 = tokens[2]
+    op   = tokens[3]
+    src2 = tokens[4]
+
+    # Validate operator
+    if op not in {"+", "-", "*", "/"}:
+        raise ParseError("Invalid operator in [dst = src1 op src2] format.")
+
+    # Validate src11
+    if not is_valid_operand(src1):
+        raise ParseError("Invalid first operand in [dst = src1 op src2] format.")
+
+    # Validate src2
+    if not is_valid_operand(src2):
+        raise ParseError("Invalid second operand in [dst = src1 op src2] format.")
+    
 
 
 def read3AddrInstruction(line: str) -> Operation:
@@ -134,85 +215,53 @@ def read3AddrInstruction(line: str) -> Operation:
     Raises:
       ParseError if the instruction format is invalid.
     """
-  # tokenzied line with valid op check already done
+    # tokenzied line with valid op check already done
     tokens = tokenize_line(line)
   
-  # skip blank lines
+    # skip blank lines
     if not tokens:
-      return None
+        return None
 
     length = len(tokens)
 
     if length not in (3, 4, 5):
-      raise ParseError("Invalid instruction size. Expected three-address instruction.")
+        raise ParseError("Invalid instruction size. Expected three-address instruction.")
 
-    
-  # Validate destination variable
+    # Validate destination variable
     dest = tokens[0]
-    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", dest):
-      raise ParseError("Invalid destination type.")
+    if not is_valid_variable(dest):
+        raise ParseError("Invalid destination type.")
 
-       
- # dst = src
+    dest_equals_source_check(length, tokens)
+
+    # Return the appropriate Operation based on instruction type
     if length == 3:
-       src = tokens[2]
-
-       is_var = re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", src)
-       is_int = re.fullmatch(r"-?\d+", src)
-
-       if not (is_var or is_int):
-        raise ParseError("Invalid source within [dst = src] format.")
-      
-
-  # checks if dst = -src
+        # dst = src
+        return Operation(dest, tokens[2])
     elif length == 4:
-       negative = tokens[2]
-       src = tokens[3]
-
-       if negative != "-":
-          raise ParseError("Expected unary '-' in [dst = -src] format.")
-
-       is_var = re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", src)
-       is_int = re.fullmatch(r"-?\d+", src)
-
-       if not (is_var or is_int):
-          raise ParseError("Invalid source within [dst = -src] format.")
-
-  
-   # dst = src1 op src2
+        # dst = -src (unary minus)
+        return Operation(dest, tokens[3], unary_neg=True)
     elif length == 5:
-      src1 = tokens[2]
-      op   = tokens[3]
-      src2 = tokens[4]
+        # dst = src1 op src2
+        return Operation(dest, tokens[2], tokens[3], tokens[4])
+    
 
-      # Validate operator
-      if op not in {"+", "-", "*", "/"}:
-          raise ParseError("Invalid operator in [dst = src1 op src2] format.")
 
-      # Validate src1
-      is_var1 = re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", src1)
-      is_int1 = re.fullmatch(r"-?\d+", src1)
-
-      if not (is_var1 or is_int1):
-        raise ParseError("Invalid first operand in [dst = src1 op src2] format.")
-
-      # Validate src2
-      is_var2 = re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", src2)
-      is_int2 = re.fullmatch(r"-?\d+", src2)
-
-      if not (is_var2 or is_int2):
-        raise ParseError("Invalid second operand in [dst = src1 op src2] format.")
-
-  # Return the appropriate Operation based on instruction type
-    if length == 3:
+def dest_equals_source_check(length: int, tokens: List[str]) -> None:
+    """
+    This helper function (given the len(token) and tokens = tokenize_line(line)) checks
+    which condition needs to be looked at of the three potential options.
+    """
     # dst = src
-      return Operation(dest, tokens[2])
+    if length == 3:
+        validate_length_3(tokens)
+    # checks if dst = -src
     elif length == 4:
-    # dst = -src (unary minus)
-      return Operation(dest, tokens[3], unary_neg=True)
-    elif length == 5:
+        validate_length_4(tokens)
     # dst = src1 op src2
-      return Operation(dest, tokens[2], tokens[3], tokens[4])
+    elif length == 5:
+        validate_length_5(tokens)
+
 
 
 def parse_live_line(line: str, operations: List[Operation]) -> List[str]:
