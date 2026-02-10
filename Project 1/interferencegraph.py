@@ -21,7 +21,7 @@ class InterferenceGraph:
         self._add_edges()
 
     def _add_nodes(self):
-        """Intenral method that adds all variables appearing in any liveness set as nodes."""
+        """Internal method that adds all variables appearing in any liveness set as nodes."""
         all_vars = set()
         for live in self.live_sets:
             for var in live:
