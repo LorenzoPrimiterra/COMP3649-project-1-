@@ -254,27 +254,22 @@ def build_interference_graph(code) -> InterferenceGraph:
     return graph
 
 def allocate_registers(graph, num_regs):
-        """
-        A recursive function to solve the register allocation puzzle.
-        Closely follows the Eight Queens 'placeQueensSafely' logic.
-        """
+    """
+    A recursive function to solve the register allocation puzzle.
+    Closely follows the Eight Queens 'placeQueensSafely' logic.
+    """
 
-# =========================================================================
-# HEADS UP FOR THE BACKTRACKING TEAM: LOOK AT THE 8-QUEENS STRATEGY
-# =========================================================================
-# The 8-Queens case study provided by the professor is the primary blueprint. 
-#
-# 1. RECURSIVE DEPTH-FIRST SEARCH: 
-#    Your 'solve' function should mirror 'placeQueensSafely' in 8queens.c.
-#    It should return True (success) or False (dead end). 
-#
-# 2. THE SEARCH LOOP: 
-#    For each variable, iterate through all available registers (colors 0 to n-1).
-#    Check 'is_safe' before recursing to 'prune' the search space. 
-#
-# 3. BACKTRACKING: 
-#    If the recursive call for the next variable returns False, you MUST call 
-#    'graph.unassign(var)' to restore the state before trying the next color. 
-#
-# 4. SUCCESS: 
-#    The base case is when 'get_unassigned_variable()' returns None. 
+    var = graph.get_unassigned_variable()         
+    if var is None:
+        return True                                    # A solution has been found
+    
+    for colour in range(num_regs):                     # checking all possible combinations of registers over the graph
+
+        if graph.is_safe(var, colour):                 # If valid, an assignment is made
+            graph.assign(var, colour)
+
+            if  allocate_registers(graph, num_regs):   #Recursive call -- if it was valid return true 
+                return True
+            graph.unassign(var)                        # if not, we unassign and try again 
+
+    return False                                       # false if all fails 

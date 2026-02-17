@@ -1,12 +1,12 @@
 import sys
 from errors import ParseError
 from parser import readIntermediateCode
-from interference import build_interference_graph
+from interference import build_interference_graph, allocate_registers
 
 def main() -> int:
     
     if len(sys.argv) != 3:
-        print("Usage: python main.py <input_filename>", file=sys.stderr)
+        print("Usage: python main.py <num_regs> <input_filename>", file=sys.stderr)
         return 2
     
     try:                                                    # Requirement: Argument one must be an integer > 0
@@ -29,7 +29,7 @@ def main() -> int:
         print(f"Parse error: {e}", file=sys.stderr)
         return 2
    
-    print(code)
+    #print(code)
     code.compute_liveness_info()
 
     for i, op in enumerate(code.oplist):                    # code section is to see output clearly 
@@ -39,7 +39,22 @@ def main() -> int:
 
     graph = build_interference_graph(code)
     graph.print_table()
-    return 0
+
+    print(f"Graph has {len(graph.nodes)} variables and {sum(len(n) for n in graph.nodes.values())//2} edges.")  # for demo
+ 
+    success =  allocate_registers(graph, num_regs)     
+
+    if success:
+        print(f"SUCCESS: coloured with <= {num_regs} registers")
+        print("Variable -> Register assignment:")
+
+        for var in sorted(graph.assignments):  
+            print(f"{var}: R{graph.assignments[var]}") 
+        return 0
+    else:
+        print(f"FAILED: graph is not {num_regs}-colourable (not enough registers).")
+        return 1
+    
 
 if __name__ == "__main__":
     main()
