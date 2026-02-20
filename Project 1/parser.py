@@ -93,9 +93,20 @@ def tokenize_line(line: str) -> List[str]:
     if not line:
         return[] 
 
-    # Removes delimiters/spaces and if they are next to eachother.
-    delimiters = r"[,\s;\n]+"
-    tokens = re.split(delimiters, line.strip()) 
+    """Removes delimiters/spaces and if they are next to eachother
+    only splits over whitespace/semi-colon/commas
+    hence breaks when there is a delimeter between them like "a=a+1" or "t1=t2*3"
+    because the entire expression becomes one token ("a=a+1") and the parser
+    never sees "=" or "+" as separate tokens.
+    Using re.findall with a token pattern fixes this by extracting identifiers,
+    integers (including -10), and single-char operators (= + - * /) as distinct tokens."""
+
+    # delimiters = r"[,\s;\n]+"
+    # tokens = re.split(delimiters, line.strip()) 
+
+    """ New (extract tokens directly, including operators as tokens)"""
+    token_pattern = r"-?\d+|[A-Za-z][A-Za-z0-9_]*|[=+\-*/]"
+    tokens = re.findall(token_pattern, line)
 
     # Validate tokens
     valid_chars = set(string.ascii_letters + string.digits + "+-/*=_")
@@ -124,11 +135,13 @@ Below defines the main read3AddrInstruction function and all its complimentary h
  """
 
 
-def is_valid_variable(s: str) -> bool:
+def is_valid_variable(var: str) -> bool:
     """
-    Check if string is a valid variable name.
+    Project variable rule:
+      - one lowercase letter excluding 't'  (a..z but not t)
+      - OR 't' followed by one or more digits (t1, t2, ...)
     """
-    return bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", s))
+    return bool(re.fullmatch(r"(?:[a-su-z]|t\d+)", var))
 
 
 
@@ -296,9 +309,9 @@ def parse_live_line(line: str, operations: List[Operation]) -> List[str]:
     # Removes live section
     rest_of_line = line[5:].strip()
     
-    # Handle empty live set
+    # Handle empty live set (spec allows 0 variables after 'live:')
     if not rest_of_line:
-        raise ParseError("No live variables found.")
+        return []
 
     # splits the rest of the string on comma's to get each variable
     live_vars = rest_of_line.split(',')
@@ -308,9 +321,9 @@ def parse_live_line(line: str, operations: List[Operation]) -> List[str]:
     for i in range(len(live_vars)):
         live_vars[i] = live_vars[i].strip()
         
-        # Check if valid variable name
-        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", live_vars[i]):
-            raise ParseError(f"Invalid variable name: '{live_vars[i]}'")
+    # Check if valid variable name 
+    if not is_valid_variable(live_vars[i]):
+        raise ParseError(f"Invalid variable name: '{live_vars[i]}'")
     
     # Check that each live variable appeared in the code
     for var in live_vars:

@@ -25,16 +25,17 @@ class AsmInstruction:
         MOV R1,a
         MUL R2,R3
     """
-    opcode: str
-    src: str = None
-    dst: str = None
+    def __init__(self, opcode: str, src: str = None, dst: str = None):
+        self.opcode = opcode
+        self.src = src
+        self.dst = dst
 
     def __str__(self) -> str:
         if self.src is None and self.dst is None:
             return self.opcode
         if self.dst is None:
             return f"{self.opcode} {self.src}"
-        return f"{self.opcode} {self.src},{self.dst}"  # Return a properly formatted assembly instruction string.
+        return f"{self.opcode} {self.src},{self.dst}"
 
 
 

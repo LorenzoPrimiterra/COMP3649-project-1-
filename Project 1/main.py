@@ -1,7 +1,7 @@
 import sys
 from errors import ParseError
 from parser import readIntermediateCode
-from interference import build_interference_graph, allocate_registers
+from interference import build_interference_graph, allocate_registers, print_register_colouring
 
 def main() -> int:
     
@@ -32,10 +32,11 @@ def main() -> int:
     #print(code)
     code.compute_liveness_info()
 
-    for i, op in enumerate(code.oplist):                    # code section is to see output clearly 
-        print(f"{i}: {op}")
-        print("  before:", sorted(code.live_before[i]))
-        print("  after :", sorted(code.live_after[i]))      # REMOVE BEFORE SUBMISSION
+    """ was used for testing """
+    # for i, op in enumerate(code.oplist):                    # code section is to see output clearly 
+    #     print(f"{i}: {op}")
+    #     print("  before:", sorted(code.live_before[i]))
+    #     print("  after :", sorted(code.live_after[i]))      # REMOVE BEFORE SUBMISSION
 
     graph = build_interference_graph(code)
     graph.print_table()
@@ -43,6 +44,8 @@ def main() -> int:
     print(f"Graph has {len(graph.nodes)} variables and {sum(len(n) for n in graph.nodes.values())//2} edges.")  # for demo
  
     success =  allocate_registers(graph, num_regs)     
+
+    print_register_colouring(graph.assignments, num_regs)
 
     if success:
         print(f"SUCCESS: coloured with <= {num_regs} registers")

@@ -273,3 +273,18 @@ def allocate_registers(graph, num_regs):
             graph.unassign(var)                        # if not, we unassign and try again 
 
     return False                                       # false if all fails 
+
+def print_register_colouring(assignments: dict, num_regs: int) -> None:
+    """
+    Prints the register colouring table in the required format:
+      R0: v1, v2
+      R1: v3
+      ...
+    """
+    regs = {r: [] for r in range(num_regs)}
+    for var, r in assignments.items():
+        regs[r].append(var)
+
+    for r in range(num_regs):
+        regs[r].sort()
+        print(f"R{r}: {', '.join(regs[r])}")
