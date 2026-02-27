@@ -1,17 +1,63 @@
 """
-Parser module for COMP 3649 register-allocation project (Week 3).
+parser.py
+=========
+Reads an input file and turns each line into structured Python objects
+that the rest of the program can work with.
 
-Responsibilities of this module:
-- Read and validate the intermediate-code input file
-- Parse each three-address instruction into an IR object
-- Parse the final 'live:' line
+Role in the Pipeline
+--------------------
+First stage after main.py opens the file:
+
+    main.py          ← opens the file and passes it to the parser
+          ↓
+    parser.py        ← reads and validates each line, builds the instruction list
+          ↓
+    intermediate.py  ← receives the Operation list and live-out variables
+
+Responsibilities
+----------------
+- Read and validate each instruction line from the input file
+- Break each line into tokens (handles spacing like a=b+c and a = b + c)
+- Check that destinations are valid variables and operands are valid
+- Parse the final 'live:' line into a list of variable names
 - Raise ParseError on any invalid input
+- Return a populated IntermediateCode object
 
-This module MUST NOT:
-- Open files (file I/O handled in main.py)
-- Perform register allocation
-- Perform liveness analysis
-- Generate target/assembly code
+Out of Scope
+------------
+- Opening or closing files (main.py)
+- Performing liveness analysis (liveness.py)
+- Building interference graphs or assigning registers (interference.py)
+- Generating assembly instructions (target.py)
+
+Key Abstractions
+----------------
+readIntermediateCode(f)
+    Top-level function. Reads the file and returns a complete
+    IntermediateCode object.
+
+read3AddrInstruction(line)
+    Parses a single instruction line into an Operation object.
+
+tokenize_line(line)
+    Breaks a raw line of text into a clean list of tokens.
+
+parse_live_line(line, operations)
+    Parses the final 'live:' line and validates the variable names.
+
+Dependencies
+------------
+- errors.py      : ParseError raised on any malformed input
+- intermediate.py : Operation and IntermediateCode objects are constructed here
+
+Usage Example
+-------------
+NA
+
+Notes
+-----
+NA
+
 """
 
 from typing import TextIO, List
