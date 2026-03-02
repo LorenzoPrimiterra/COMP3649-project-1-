@@ -1,0 +1,138 @@
+A) Command-line argument errors (no file edits needed)
+1) Missing args
+
+Run:
+
+python main.py 3
+
+Expected: usage message (because len(sys.argv) != 3) 
+
+main
+
+2) num_regs is not an int
+
+Run:
+
+python main.py three test.txt
+
+Expected: Error: <num_regs> must be a positive integer 
+
+main
+
+3) num_regs <= 0
+
+Run:
+
+python main.py 0 test.txt
+
+Expected: same positive-integer error 
+
+main
+
+4) file not found
+
+Run:
+
+python main.py 3 does_not_exist.txt
+
+Expected: Error: file not found: ... 
+
+main
+
+B) Input file parsing errors (edit file contents)
+5) Missing live: line (last line must start with live:)
+
+File (bad_missing_live.txt):
+
+a = a + 1
+t1 = a * 2
+b = t1 / 3
+
+Expected: Parse error: Final line must start with 'live:' 
+
+parser
+
+6) Invalid destination variable (destination must match [a-su-z] or t\d+)
+
+File (bad_dest.txt):
+
+aa = 3
+live: aa
+
+Expected: Parse error: Invalid destination type. 
+
+parser
+
+(Your is_valid_variable() rejects multi-letter names.) 
+
+parser
+
+7) Invalid operator
+
+File (bad_op.txt):
+
+a = 1 % 2
+live: a
+
+Expected: Parse error: Invalid instruction size... or Invalid operator...
+
+Why: your tokenizer won’t produce % as a valid operator token (pattern only includes = + - * /) and % also fails the allowed operator set. 
+
+parser
+
+8) Invalid instruction size (too many tokens)
+
+File (bad_len.txt):
+
+a = b + c + d
+live: a
+
+Expected: Parse error: Invalid instruction size. Expected three-address instruction. 
+
+parser
+
+9) Bad unary minus form
+
+File (bad_unary.txt):
+
+a = - - 5
+live: a
+
+Expected: Parse error: Invalid instruction size... (token count won’t be 4 or 5) 
+
+parser
+
+10) Invalid variable name in live list
+
+File (bad_live_name.txt):
+
+a = 1
+live: aa
+
+Expected: Parse error: Invalid variable name: 'aa' 
+
+parser
+
+11) Live variable not found in code (super clean demo)
+
+File (bad_live_not_found.txt):
+
+a = 1
+live: b
+
+Expected: Parse error: Variable 'b' not found in code 
+
+parser
+
+This one is perfect for a demo because it directly matches the spec rule too. 
+
+Programming Project - Overall R…
+
+12) Invalid character in token (parser rejects it)
+
+File (bad_char.txt):
+
+a = 1 @ 2
+live: a
+
+Expected: Parse error: Invalid character '@' in token: ...
