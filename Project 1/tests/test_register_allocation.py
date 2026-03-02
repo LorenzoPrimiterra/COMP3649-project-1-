@@ -18,8 +18,6 @@ live: a, b, c
 
 
 def test_allocation_fail():
-    """This test tests whether or not the register allocator will allow an impossible scenario, e.g. 3 registers required
-    but only 2 available"""
     program = """a = 1
 b = 2
 c = 3
