@@ -366,10 +366,9 @@ def parse_live_line(line: str, operations: List[Operation]) -> List[str]:
      # Clean up whitespace and validate each variable
     for i in range(len(live_vars)):
         live_vars[i] = live_vars[i].strip()
-        
-    # Check if valid variable name 
-    if not is_valid_variable(live_vars[i]):
-        raise ParseError(f"Invalid variable name: '{live_vars[i]}'")
+        # Check if valid variable name 
+        if not is_valid_variable(live_vars[i]):
+            raise ParseError(f"Invalid variable name: '{live_vars[i]}'")
     
     # Check that each live variable appeared in the code
     for var in live_vars:
