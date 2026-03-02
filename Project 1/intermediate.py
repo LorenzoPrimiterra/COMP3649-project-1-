@@ -58,7 +58,6 @@ NA
 from dataclasses import dataclass
 from typing import List
 
-@dataclass(frozen=True) #immutable class 
 class Operation:
     """
     One three-address instruction.
@@ -68,11 +67,20 @@ class Operation:
       dst = -src
       dst = src1 op src2
     """
-    destination: str
-    operand1: str
-    operator: str = None
-    operand2: str = None
-    unary_neg: bool = False # the negative op
+
+    def __init__(
+        self,
+        destination: str,
+        operand1: str,
+        operator: str = None,
+        operand2: str = None,
+        unary_neg: bool = False
+    ):
+        self.destination = destination
+        self.operand1 = operand1
+        self.operator = operator
+        self.operand2 = operand2
+        self.unary_neg = unary_neg
 
     def __str__(self) -> str:
         if self.operator is None and not self.unary_neg:
@@ -80,7 +88,6 @@ class Operation:
         if self.unary_neg:
             return f"{self.destination} = -{self.operand1}"
         return f"{self.destination} = {self.operand1} {self.operator} {self.operand2}"
-
 
 
 class IntermediateCode: 
