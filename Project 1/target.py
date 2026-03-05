@@ -110,12 +110,6 @@ class TargetCode:
         """
         return "\n".join(str(i) for i in self.instructions)
 
-        self,
-        destination: str,
-        operand1: str,
-        operator: str = None,
-        operand2: str = None,
-        unary_neg: bool = False
 instruction = {
     "=":"MOV",
     "+":"ADD",
@@ -128,10 +122,26 @@ def OpParser(op:Operator):
     if target != None:
         return target
     raise InvalidOpError(f"The given operator {op} is not a valid instruction in our architecture.")
-    
-def intermediateToAsm(intermediate:IntermediateCode) -> None:
+
+#Might not be a useful function, still working on this rn, flipped the logic because this is supposed to tell us if our op is immediate, but if it isnt we have more work to do
+def isImmediateOp(operand1:Operand, operand2:Operand = None)->bool:
+    if(isinstance(operand1,int) and (isinstance(operand2,int) or operand2 == None)){
+        return true
+    }
+    return false
+
+def TargetCodeOpParser(code){
+    currentOp = OpParser(code.operator)
+    if(isImmediateOp(code.operand1, code.operand2)): #this means we have 1 step instructions.
+        if(code.)
+        #Do multi-step instructions that might require movs or sign flips
+}    
+def IntermediateToAsm(intermediate:IntermediateCode) -> None:
     prev = None
     for code in intermediate:
+        if(isinstance(code.operand1,str) or isinstance(code.operand2,str)){ #basically, are 1 and 2 immediate values
+
+        }
         TargetCodeopParser(code.operator) #Very basic, not built rn but the logic 
         
 
