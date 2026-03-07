@@ -55,7 +55,6 @@ Notes
 NA
 """
 
-from dataclasses import dataclass
 from typing import List
 
 class Operation:

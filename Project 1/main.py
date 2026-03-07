@@ -1,8 +1,3 @@
-import sys
-from errors import ParseError
-from parser import readIntermediateCode
-from interference import build_interference_graph, allocate_registers, print_register_colouring
-
 """
 main.py
 ================
@@ -62,8 +57,13 @@ Notes
 - Exit code 0: allocation succeeded, assignments printed
 - Exit code 1: allocation failed (not enough registers)
 - Exit code 2: bad arguments or malformed input file
-
 """
+import sys
+from errors import ParseError
+from parser import readIntermediateCode
+from interference import build_interference_graph, allocate_registers, print_register_colouring
+from codegen import generate_target
+
 def main() -> int:
     
     if len(sys.argv) != 3:
@@ -110,6 +110,12 @@ def main() -> int:
 
     if success:
         print(f"SUCCESS: coloured with <= {num_regs} registers")
+        target = generate_target(code, graph.assignments)
+
+        out_file = filename + ".s"
+        with open(out_file, "w") as f:
+            f.write(str(target))
+            
         print("Variable -> Register assignment:")
 
         for var in sorted(graph.assignments):  
