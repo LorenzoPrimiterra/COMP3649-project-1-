@@ -254,7 +254,7 @@ class InterferenceGraph:
         for var in sorted(self.nodes.keys()):
             neighbors = sorted(list(self.nodes[var]))
             print(f"{var}: {', '.join(neighbors)}")
-
+            
 def build_interference_graph(code) -> InterferenceGraph:
     """
     Construct an InterferenceGraph using liveness analysis results.
