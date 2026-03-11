@@ -10,7 +10,6 @@ from codegen import generate_target
 
 
 def test_full_pipeline_success():
-    '''TODO: Update this when the full ASM pipeline works.'''
     program = """a = a + 1
 t1 = a * 2
 b = t1 / 3
@@ -35,7 +34,6 @@ live: a, b
     assert "DIV" in asm
 
 def test_full_pipeline_failure():
-    """TODO: Update this when the final ASM pipeline works."""
     program = """a = 1
 b = 2
 c = 3
