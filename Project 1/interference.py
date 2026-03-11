@@ -1,6 +1,68 @@
 from typing import Set, Dict, List
 from liveness import is_var
 
+"""
+interference.py
+===============
+Builds a graph of variables that are alive at the same time and
+therefore cannot share a register, then assigns registers to all
+variables by coloring the graph.
+
+Role in the Pipeline
+--------------------
+Receives the liveness-annotated code object from intermediate.py
+and produces the final register assignments:
+
+    intermediate.py  ← provides oplist, live_out, live_before, live_after
+          ↓
+    interference.py  ← builds interference graph from liveness sets
+          ↓
+    interference.py  ← colors the graph to assign registers
+          ↓
+    main.py          ← prints the final register assignments
+
+Responsibilities
+----------------
+- Collect all variables that appear in the block
+- Build an undirected graph where an edge means two variables
+  are alive at the same time and cannot share a register
+- Assign registers to variables by coloring the graph using backtracking
+- Provide safety checks to ensure no two connected variables share a register
+
+Out of Scope
+------------
+- Computing liveness (liveness.py)
+- Parsing instructions (parser.py)
+- Storing instructions or liveness results (intermediate.py)
+- Generating assembly instructions (target.py)
+
+Key Abstractions
+----------------
+InterferenceGraph
+    Undirected graph where nodes are variables and edges represent
+    interference — two variables that cannot share a register.
+
+build_interference_graph(code)
+    Constructs and returns an InterferenceGraph from a liveness
+    annotated IntermediateCode object.
+
+allocate_registers(graph, num_regs)
+    Attempts to color the graph using at most num_regs colors
+    via backtracking. Returns True if successful, False if not.
+
+Dependencies
+------------
+- liveness.py  : is_var() used to filter constants from variable lists
+
+Usage Example
+-------------
+NA
+
+Notes
+-----
+NA
+"""
+
 class InterferenceGraph:
     """
     Represents an undirected graph where nodes are variables.
@@ -192,7 +254,7 @@ class InterferenceGraph:
         for var in sorted(self.nodes.keys()):
             neighbors = sorted(list(self.nodes[var]))
             print(f"{var}: {', '.join(neighbors)}")
-
+            
 def build_interference_graph(code) -> InterferenceGraph:
     """
     Construct an InterferenceGraph using liveness analysis results.
@@ -237,13 +299,6 @@ def build_interference_graph(code) -> InterferenceGraph:
     
     graph = InterferenceGraph(valid_vars)
 
-    if code.live_before:
-        entry_vars = list(code.live_before[0])
-        for i in range(len(entry_vars)):
-            for j in range(i + 1, len(entry_vars)):
-                graph.add_edge(entry_vars[i], entry_vars[j])
-
-    # 2. Add edges based on overlapping liveness 
     # A variable interferes with everything else live at the same point.
     for live_set in code.live_after:
         live_list = list(live_set)

@@ -74,9 +74,9 @@ class AsmInstruction:
         MOV R1,a
         MUL R2,R3
     """
-    def __init__(self, opcode: str, src: str = None, dst: str = None):
+    def __init__(self, opcode: str, src: str = None, dst: str = None, UnaryNeg: bool = False):
         self.opcode = opcode
-        self.src = src
+        self.src = src if not UnaryNeg else -src #might be an incorrect implementation. Double check.
         self.dst = dst
 
     def __str__(self) -> str:
@@ -109,3 +109,10 @@ class TargetCode:
         suitable for writing to an output .s file.
         """
         return "\n".join(str(i) for i in self.instructions)
+
+
+        
+
+
+
+
