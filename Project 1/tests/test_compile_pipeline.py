@@ -21,9 +21,7 @@ live: a, b
 
     graph = build_interference_graph(code)
 
-    success = allocate_registers(graph, 3)
-
-    assert success
+    assert allocate_registers(graph, 3)
 
     target = generate_target(code, graph.assignments)
 
