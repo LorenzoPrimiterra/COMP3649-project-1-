@@ -300,7 +300,10 @@ def build_interference_graph(code) -> InterferenceGraph:
     graph = InterferenceGraph(valid_vars)
 
     # A variable interferes with everything else live at the same point.
-    for live_set in code.live_after:
+    # A variable interferes with everything else live at the same point.
+    # Include live_before[0] so that variables live on entry also interfere.
+    all_live_sets = [code.live_before[0]] + code.live_after if code.oplist else []
+    for live_set in all_live_sets:
         live_list = list(live_set)
         for i in range(len(live_list)):
             for j in range(i + 1, len(live_list)):

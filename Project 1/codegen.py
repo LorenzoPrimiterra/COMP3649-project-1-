@@ -195,6 +195,18 @@ def _asm_operand(tok: str, assignments: Dict[str, int]) -> str:
         raise CodegenError(f"Unexpected operand token (not var or int): {tok!r}")
     return _reg(tok, assignments)
 
+def _asm_operand_raw(tok: str) -> str:
+    """
+    Convert an IR operand into a non-register assembly operand.
+    Always returns the memory/immediate form (never a register).
+    Used when we need to reload a value that was clobbered.
+    """
+    if tok is None:
+        raise CodegenError("Operand is None")
+    if _is_int_literal(tok):
+        return f"#{int(tok)}"
+    return tok
+
 
 def op_to_asm(op: Operation, assignments: Dict[str, int]) -> List[AsmInstruction]:
     """
@@ -222,15 +234,18 @@ def op_to_asm(op: Operation, assignments: Dict[str, int]) -> List[AsmInstruction
     # dst = src
     if op.operator is None and not op.unary_neg:
         src = _asm_operand(op.operand1, assignments)
+        if src == dst_r:
+            return []
         return [AsmInstruction("MOV", src, dst_r)]
 
     # dst = -src  (simple correct version)
     if op.unary_neg:
         src = _asm_operand(op.operand1, assignments)
-        return [
-            AsmInstruction("MOV", src, dst_r),
-            AsmInstruction("MUL", "#-1", dst_r),
-        ]
+        instrs = []
+        if src != dst_r:
+            instrs.append(AsmInstruction("MOV", src, dst_r))
+        instrs.append(AsmInstruction("MUL", "#-1", dst_r))
+        return instrs
 
     # dst = src1 op src2
     opcode_map = {"+": "ADD", "-": "SUB", "*": "MUL", "/": "DIV"}
@@ -242,9 +257,35 @@ def op_to_asm(op: Operation, assignments: Dict[str, int]) -> List[AsmInstruction
 
     src1 = _asm_operand(op.operand1, assignments)
     src2 = _asm_operand(op.operand2, assignments)
+    asm_op = opcode_map[op.operator]
+
+    # Case 1: src1 already in dst register — skip the MOV
+    if src1 == dst_r:
+        return [AsmInstruction(asm_op, src2, dst_r)]
+
+    # Case 2: src2 is in dst register — MOV would clobber it
+    if src2 == dst_r:
+        # Commutative ops: just swap operands
+        if op.operator in {"+", "*"}:
+            return [AsmInstruction(asm_op, src1, dst_r)]
+        # SUB: negate then add (dst has src2, we want src1 - src2)
+        if op.operator == "-":
+            return [
+                AsmInstruction("MUL", "#-1", dst_r),
+                AsmInstruction("ADD", src1, dst_r),
+            ]
+        # DIV: reload src2 from memory/immediate after overwriting
+        if op.operator == "/":
+            src2_reload = _asm_operand_raw(op.operand2)
+            return [
+                AsmInstruction("MOV", src1, dst_r),
+                AsmInstruction("DIV", src2_reload, dst_r),
+            ]
+
+    # Case 3: no conflict — standard sequence
     return [
         AsmInstruction("MOV", src1, dst_r),
-        AsmInstruction(opcode_map[op.operator], src2, dst_r),
+        AsmInstruction(asm_op, src2, dst_r),
     ]
 
 

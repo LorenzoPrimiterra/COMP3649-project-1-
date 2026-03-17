@@ -90,19 +90,10 @@ def main() -> int:
         print(f"Parse error: {e}", file=sys.stderr)
         return 2
    
-    #print(code)
     code.compute_liveness_info()
-
-    """ was used for testing """
-    # for i, op in enumerate(code.oplist):                    # code section is to see output clearly 
-    #     print(f"{i}: {op}")
-    #     print("  before:", sorted(code.live_before[i]))
-    #     print("  after :", sorted(code.live_after[i]))      # REMOVE BEFORE SUBMISSION
 
     graph = build_interference_graph(code)
     graph.print_table()
-
-    print(f"Graph has {len(graph.nodes)} variables and {sum(len(n) for n in graph.nodes.values())//2} edges.")  # for demo
  
     success =  allocate_registers(graph, num_regs)     
 
@@ -127,5 +118,5 @@ def main() -> int:
     
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
 
