@@ -10,7 +10,7 @@
   Constructors hidden — all access through exported functions.
 -}
 
-module IR
+{-module IR
   ( Operation
   , IRBlock
   , mkAssign, mkUnaryNeg, mkBinOp
@@ -21,3 +21,43 @@ module IR
   ) where
 
 -- TODO
+-}
+module ThreeAddress
+(
+    Instruction,
+    InstructionSeq,
+    makeAssign,
+    makeBinOp,
+    makeConst,
+    emptySeq,
+    addInstruction
+)
+where
+
+type Variable = String
+
+data Instruction
+    = Assign Variable Variable
+    | BinOp Variable String Variable Variable
+    | Const Variable Int
+    deriving (Show)
+
+data InstructionSeq =
+    InstructionSeq [Instruction] [Variable]
+    deriving (Show)
+
+makeAssign :: Variable -> Variable -> Instruction
+makeAssign = Assign
+
+makeBinOp :: Variable -> String -> Variable -> Variable -> Instruction
+makeBinOp = BinOp
+
+makeConst :: Variable -> Int -> Instruction
+makeConst = Const
+
+emptySeq :: InstructionSeq
+emptySeq = InstructionSeq [] []
+
+addInstruction :: Instruction -> InstructionSeq -> InstructionSeq
+addInstruction i (InstructionSeq xs live) =
+    InstructionSeq (xs ++ [i]) live
