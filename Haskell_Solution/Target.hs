@@ -82,14 +82,14 @@ getInstructions (TCode is) = is
 -- | Format the full target code for output to .s file
 showTargetCode :: TargetCode -> String
 showTargetCode (TCode is) = unlines (map showAsmInstruction is)
-```
 
-Test in GHCi:
-```
-> :load Target
-> showAsmInstruction (mkAsmInstruction "ADD" (Just "#1") (Just "R0"))
-"ADD #1,R0"
-> let t = addInstruction (mkAsmInstruction "ADD" (Just "#1") (Just "R0")) (addInstruction (mkAsmInstruction "MOV" (Just "a") (Just "R0")) emptyTargetCode)
-> putStr (showTargetCode t)
-MOV a,R0
-ADD #1,R0
+
+-- Test in GHCi:
+
+-- > :load Target
+-- > showAsmInstruction (mkAsmInstruction "ADD" (Just "#1") (Just "R0"))
+-- "ADD #1,R0"
+-- > let t = addInstruction (mkAsmInstruction "ADD" (Just "#1") (Just "R0")) (addInstruction (mkAsmInstruction "MOV" (Just "a") (Just "R0")) emptyTargetCode)
+-- > putStr (showTargetCode t)
+-- MOV a,R0
+-- ADD #1,R0
