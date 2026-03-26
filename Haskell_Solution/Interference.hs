@@ -5,13 +5,13 @@
   and performs graph-colouring register allocation.
 
   Defines:
-    - IGraph : undirected interference graph (adjacency-set representation)
+    - Graph : undirected interference graph (adjacency-set representation)
 
   Constructor hidden.
 -}
 
 module Interference
-  ( IGraph
+  ( Graph
   , buildGraph
   , allocateRegisters
   , getAssignments, getNeighbors
