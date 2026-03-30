@@ -29,21 +29,21 @@ jobs:
     - run: pytest -v
 
 
-haskell-tests:
-  runs-on: ubuntu-latest
+  haskell-tests:
+    runs-on: ubuntu-latest
 
-  steps:
-  - uses: actions/checkout@v4
+    steps:
+    - uses: actions/checkout@v4
 
-  - name: Setup Haskell
-    uses: haskell-actions/setup@v2
-    with:
-      enable-stack: true
+    - name: Setup Haskell
+      uses: haskell-actions/setup@v2
+      with:
+        enable-stack: true
 
-  - name: Build
-    working-directory: Haskell-Solution
-    run: stack build
+    - name: Build
+      working-directory: Haskell-Solution
+      run: stack build
 
-  - name: Run Hspec tests
-    working-directory: Haskell-Solution
-    run: stack test
+    - name: Run Hspec tests
+      working-directory: Haskell-Solution
+      run: stack test
