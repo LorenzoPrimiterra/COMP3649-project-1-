@@ -18,6 +18,7 @@ module Interference
   , buildGraph
   , colourGraph
   , getAssignments
+  , showInterferenceTable
   , showColouring
   ) where
 
@@ -25,7 +26,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.List ((\\))
+import Data.List ((\\), sort)
 
 
 -- ************************************************************
@@ -178,6 +179,28 @@ colourGraph k g =
     safe v c asg =
       let neighbors = Set.toList (nodes g Map.! v)
       in all (\n -> Map.lookup n asg /= Just c) neighbors
+
+
+-- ************************************************************
+-- showInterferenceTable — matches print_table in Python
+-- ************************************************************
+-- | Format the interference table as:
+--
+--     --- Variable Interference Table ---
+--     a: b, t1
+--     b: a
+
+showInterferenceTable :: Graph -> String
+showInterferenceTable g =
+  let vars = sort (Map.keys (nodes g))
+      showRow v =
+        let neighbors = sort (Set.toList (Map.findWithDefault Set.empty v (nodes g)))
+        in v ++ ": " ++ commaJoin neighbors
+      commaJoin []     = ""
+      commaJoin [x]    = x
+      commaJoin (x:xs) = x ++ ", " ++ commaJoin xs
+  in "--- Variable Interference Table ---\n" ++
+     unlines (map showRow vars)
 
 
 -- ************************************************************
