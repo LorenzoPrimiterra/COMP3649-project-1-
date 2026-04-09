@@ -1,4 +1,5 @@
 {-
+{-
   Test_Intermediate.hs
 
   Hard-coded test cases for development and testing.
@@ -68,3 +69,47 @@ test5 = mkIntermediateCode
 -- showOperation (mkUnaryNeg "x" "y")
 -- getDestination (mkBinOp "t1" "a" "+" "4")
 -- isUnaryNeg (mkUnaryNeg "x" "y")
+-}
+module Test_Intermediate (spec) where
+
+import Test.Hspec
+import Intermediate
+
+spec :: Spec
+spec = describe "Intermediate Code Generation" $ do
+
+    it "generates Three Address Instruction for a simple arithmetic chain (test1)" $ do
+        let ir = mkIntermediateCode
+                   [ mkBinOp  "a"  "a"  "+" "1"
+                   , mkBinOp  "t1" "a"  "*" "2"
+                   , mkBinOp  "b"  "t1" "/" "3"
+                   ]
+                   ["a", "b"]
+        showIntermediateCode ir `shouldBe` "a = a + 1\nt1 = a * 2\nb = t1 / 3\nlive: a, b"
+
+    it "handles unary negation (test2)" $ do
+        let ir = mkIntermediateCode [ mkUnaryNeg "x" "x" ] ["x"]
+        showIntermediateCode ir `shouldBe` "x = -x\nlive: x"
+
+    it "manages complex 7-line blocks (test3)" $ do
+        let ir = mkIntermediateCode
+                   [ mkBinOp "a" "a" "+" "1"
+                   , mkBinOp "t1" "a" "*" "4"
+                   , mkBinOp "t2" "t1" "+" "1"
+                   , mkBinOp "t3" "a" "*" "3"
+                   , mkBinOp "b" "t2" "-" "t3"
+                   , mkBinOp "t4" "b" "/" "2"
+                   , mkBinOp "d" "c" "+" "t4"
+                   ]
+                   ["d"]
+        let output = showIntermediateCode ir
+        output `shouldContain` "b = t2 - t3"
+        output `shouldContain` "live: d"
+
+    it "stores multiple live-out variables (test4)" $ do
+        let ir = mkIntermediateCode
+                   [ mkAssign "a" "1"
+                   , mkAssign "b" "2"
+                   ]
+                   ["a", "b"]
+        showIntermediateCode ir `shouldContain` "live: a, b"

@@ -7,8 +7,15 @@ Spec.hs is the main calling function for our automated test suite.
 TODO: Break Spec.hs up so that it just calls each of the individual
 test cases we have, but also automate it.
 -}
+import qualified Test_CodeGen
+import qualified Test_Intermediate
+
 main :: IO ()
 main = hspec $ do
+  describe "Codegen Tests" $ do
+    Test_CodeGen.spec
+  describe "Intermediate Representation Tests" $ do
+    Test_Intermediate.spec
     --test if graph can be built
   describe "Graph construction" $ do
     it "builds edges correctly" $ do
