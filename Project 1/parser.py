@@ -1,61 +1,40 @@
 """
-parser.py
+Name: parser.py
 =========
 Reads an input file and turns each line into structured Python objects
 that the rest of the program can work with.
 
-Role in the Pipeline
---------------------
-First stage after main.py opens the file:
+Pipeline:
+=============
+(First stage after main.py opens the file:)
 
-    main.py          ← opens the file and passes it to the parser
-          ↓
-    parser.py        ← reads and validates each line, builds the instruction list
-          ↓
-    intermediate.py  ← receives the Operation list and live-out variables
+   (1) main.py          <- opens the file and passes it to the parser.
+          
+   (2) parser.py        <- reads and validates each line, builds the instruction list.
+          
+   (3) intermediate.py  <- receives the Operation list and live-out variables.
 
-Responsibilities
-----------------
-- Read and validate each instruction line from the input file
-- Break each line into tokens (handles spacing like a=b+c and a = b + c)
-- Check that destinations are valid variables and operands are valid
-- Parse the final 'live:' line into a list of variable names
-- Raise ParseError on any invalid input
-- Return a populated IntermediateCode object
+Responsibilities:
+=======================
+- Reads and validate each instruction line from the input file.
+- Breaks each line into tokens (handles spacing like a=b+c and a = b + c).
+- Checks that destinations are valid variables and operands are valid.
+- Parses the final 'live:' line into a list of variable names.
+- Raises ParseError on any invalid input.
+- Returns a populated IntermediateCode object.
 
-Out of Scope
-------------
-- Opening or closing files (main.py)
-- Performing liveness analysis (liveness.py)
-- Building interference graphs or assigning registers (interference.py)
-- Generating assembly instructions (target.py)
 
-Key Abstractions
-----------------
-readIntermediateCode(f)
-    Top-level function. Reads the file and returns a complete
-    IntermediateCode object.
+Associated Dependencies:
+================================
+(1) errors.py      <- ParseError raised on any malformed input.
+(2) intermediate.py <- Operation and IntermediateCode objects are constructed here.
 
-read3AddrInstruction(line)
-    Parses a single instruction line into an Operation object.
-
-tokenize_line(line)
-    Breaks a raw line of text into a clean list of tokens.
-
-parse_live_line(line, operations)
-    Parses the final 'live:' line and validates the variable names.
-
-Dependencies
-------------
-- errors.py      : ParseError raised on any malformed input
-- intermediate.py : Operation and IntermediateCode objects are constructed here
-
-Usage Example
--------------
+Usage Example:
+=============
 NA
 
-Notes
------
+Misc Notes:
+=============
 NA
 
 """
