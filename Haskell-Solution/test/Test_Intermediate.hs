@@ -1,70 +1,52 @@
+
 {-
   Test_Intermediate.hs
-
-  Hard-coded test cases for development and testing.
+  Automated test cases for development and testing.
   Use these in GHCi before the Parser module is ready.
-
   Usage in GHCi:
     :load Test_Intermediate
     putStr (showIntermediateCode test1)
 -}
 
-module Test_Intermediate where
-
+module Test_Intermediate (spec) where
+import Test.Hspec
 import Intermediate
 
--- | a = a + 1; t1 = a * 2; b = t1 / 3; live: a, b
-test1 :: IntermediateCode
-test1 = mkIntermediateCode
-  [ mkBinOp  "a"  "a"  "+" "1"
-  , mkBinOp  "t1" "a"  "*" "2"
-  , mkBinOp  "b"  "t1" "/" "3"
-  ]
-  ["a", "b"]
+spec :: Spec
+spec = describe "Intermediate Code Generation" $ do
 
--- | r = r + s; live: r  (tests live-on-entry interference)
-test2 :: IntermediateCode
-test2 = mkIntermediateCode
-  [ mkBinOp "r" "r" "+" "s" ]
-  ["r"]
+    it "Test 1: generates Three Address Instruction for a simple arithmetic chain" $ do
+        let ir = mkIntermediateCode
+                   [ mkBinOp  "a"  "a"  "+" "1"
+                   , mkBinOp  "t1" "a"  "*" "2"
+                   , mkBinOp  "b"  "t1" "/" "3"
+                   ]
+                   ["a", "b"]
+        showIntermediateCode ir `shouldBe` "a = a + 1\nt1 = a * 2\nb = t1 / 3\nlive: a, b"
 
--- | x = -x; live: x  (tests unary negation)
-test3 :: IntermediateCode
-test3 = mkIntermediateCode
-  [ mkUnaryNeg "x" "x" ]
-  ["x"]
+    it "Test 2: handles unary negation" $ do
+        let ir = mkIntermediateCode [ mkUnaryNeg "x" "x" ] ["x"]
+        showIntermediateCode ir `shouldBe` "x = -x\nlive: x"
 
--- | Spec example (7-line)
-test4 :: IntermediateCode
-test4 = mkIntermediateCode
-  [ mkBinOp  "a"  "a"  "+" "1"
-  , mkBinOp  "t1" "a"  "*" "4"
-  , mkBinOp  "t2" "t1" "+" "1"
-  , mkBinOp  "t3" "a"  "*" "3"
-  , mkBinOp  "b"  "t2" "-" "t3"
-  , mkBinOp  "t4" "b"  "/" "2"
-  , mkBinOp  "d"  "c"  "+" "t4"
-  ]
-  ["d"]
+    it "Test 3: manages complex 7-line blocks" $ do
+        let ir = mkIntermediateCode
+                   [ mkBinOp "a" "a" "+" "1"
+                   , mkBinOp "t1" "a" "*" "4"
+                   , mkBinOp "t2" "t1" "+" "1"
+                   , mkBinOp "t3" "a" "*" "3"
+                   , mkBinOp "b" "t2" "-" "t3"
+                   , mkBinOp "t4" "b" "/" "2"
+                   , mkBinOp "d" "c" "+" "t4"
+                   ]
+                   ["d"]
+        let output = showIntermediateCode ir
+        output `shouldContain` "b = t2 - t3"
+        output `shouldContain` "live: d"
 
--- | a = 1; b = 2; c = 3; live: a, b, c  (tests needing 3 registers)
-test5 :: IntermediateCode
-test5 = mkIntermediateCode
-  [ mkAssign "a" "1"
-  , mkAssign "b" "2"
-  , mkAssign "c" "3"
-  ]
-  ["a", "b", "c"]
-
-
--- Save both Intermeidate.hs and Test_Intermedaite.hs, then test:
--- ghci Test_Intermediate.hs
-
-
--- Once it loads, try these one by one:
--- putStr (showIntermediateCode test1)
--- putStr (showIntermediateCode test4)
--- showOperation (mkAssign "a" "b")
--- showOperation (mkUnaryNeg "x" "y")
--- getDestination (mkBinOp "t1" "a" "+" "4")
--- isUnaryNeg (mkUnaryNeg "x" "y")
+    it "Test 4: stores multiple live-out variables" $ do
+        let ir = mkIntermediateCode
+                   [ mkAssign "a" "1"
+                   , mkAssign "b" "2"
+                   ]
+                   ["a", "b"]
+        showIntermediateCode ir `shouldContain` "live: a, b"

@@ -1,25 +1,28 @@
-import Test.Hspec
-import Interference
-import qualified Data.Set as Set
+
 {-
 Spec.hs is the main calling function for our automated test suite.
 
-TODO: Break Spec.hs up so that it just calls each of the individual
-test cases we have, but also automate it.
+If you wish to add a testcase, add it in the test folder under Test_{testname}.hs.
+
+After, do a qualified import and call the filename along with spec
+
 -}
+import Test.Hspec ( hspec, describe )
+import qualified Test_CodeGen
+import qualified Test_Intermediate
+import qualified Test_Liveness
+import qualified Test_Target
+import qualified Test_Interference
+
 main :: IO ()
 main = hspec $ do
-    --test if graph can be built
-  describe "Graph construction" $ do
-    it "builds edges correctly" $ do
-      let g = buildGraph ["a","b","c"] [Set.fromList ["a","b","c"]]
-      show g `shouldSatisfy` (not . null)
--- Try to colour the graph
-  describe "Graph colouring" $ do
-    it "succeeds with enough registers" $ do
-      let g = buildGraph ["a","b"] [Set.fromList ["a","b"]]
-      colourGraph 2 g `shouldSatisfy` (/= Nothing)
---try an uncolourable graph
-    it "fails with too few registers" $ do
-      let g = buildGraph ["a","b"] [Set.fromList ["a","b"]]
-      colourGraph 1 g `shouldBe` Nothing
+  describe "Codegen Tests" $ do
+    Test_CodeGen.spec
+  describe "Intermediate Representation Tests" $ do
+    Test_Intermediate.spec
+  describe "Liveness Tests" $ do
+    Test_Liveness.spec
+  describe "Target Code Tests" $ do
+    Test_Target.spec
+  describe "Test Interference Graph & Coloring" $ do
+    Test_Interference.spec
