@@ -1,57 +1,41 @@
 """
-intermediate.py
+Name: intermediate.py
 ===============
 Defines the data structures used to store a program's instructions
 and variables after they have been parsed from the input file.
 
-Role in the Pipeline
---------------------
+Pipeline:
+==================
 Receives parsed data from parser.py and acts as the shared data structure
 passed through the rest of the pipeline:
 
-    parser.py        ← constructs Operation and IntermediateCode objects
-          ↓
-    intermediate.py  ← stores instructions and live-out vars, triggers liveness
-          ↓
-    liveness.py      ← reads oplist to compute live_before / live_after
-          ↓
-    interference.py  ← reads oplist, live_out, live_before, live_after
+  (1)  parser.py        <- constructs Operation and IntermediateCode objects
+          
+  (2) intermediate.py  <- stores instructions and live-out vars, triggers liveness
+          
+  (3) liveness.py      <- reads oplist to compute live_before / live_after
+          
+  (4) interference.py  <- reads oplist, live_out, live_before, live_after
 
-Responsibilities
-----------------
-- Define Operation, representing one three-address instruction (dst = src1 op src2)
-- Define IntermediateCode, representing a full block of Operations
-- Store the parsed instruction list and live-out variables
-- Trigger liveness analysis via compute_liveness_info()
-- Provide string output that mirrors the original input file format
+Responsibilities:
+====================
+- Define Operation, representing one three-address instruction (dst = src1 op src2).
+- Define IntermediateCode, representing a full block of Operations.
+- Store the parsed instruction list and live-out variables.
+- Trigger liveness analysis via compute_liveness_info().
+- Provide string output that mirrors the original input file format.
 
-Out of Scope
-------------
-- Reading or parsing input files (parser.py)
-- Computing which variables are alive at each line (liveness.py)
-- Building interference graphs or assigning registers (interference.py)
-- Generating assembly instructions (target.py)
 
-Key Abstractions
-----------------
-Operation
-    Stores one instruction — its destination, operands, operator,
-    and whether it uses a unary minus.
-
-IntermediateCode
-    Holds the full list of instructions, the live-out variables,
-    and the liveness results once they have been computed.
-
-Dependencies
-------------
+Associated Dependencies:
+=========================
 NA
 
-Usage Example
--------------
+Usage Example:
+================
 NA
 
-Notes
------
+Misc Notes:
+==============
 NA
 """
 
