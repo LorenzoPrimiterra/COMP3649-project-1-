@@ -1,3 +1,12 @@
+{-
+  Test_Target.hs
+  Automated test cases for Target.hs
+  Tests AsmInstruction and TargetCode ADTs.
+
+  Usage in GHCi:
+    stack test
+-}
+
 module Test_Target (spec) where
 
 import Test.Hspec

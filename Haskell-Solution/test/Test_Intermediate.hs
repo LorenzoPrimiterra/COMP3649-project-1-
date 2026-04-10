@@ -1,4 +1,13 @@
 
+{-
+  Test_Intermediate.hs
+  Automated test cases for development and testing.
+  Use these in GHCi before the Parser module is ready.
+  Usage in GHCi:
+    :load Test_Intermediate
+    putStr (showIntermediateCode test1)
+-}
+
 module Test_Intermediate (spec) where
 import Test.Hspec
 import Intermediate

@@ -1,3 +1,11 @@
+{-
+  Test_Liveness.hs
+  Automated test cases for Liveness.hs
+  Tests isVar, defs, uses, and computeLiveness.
+  Usage in GHCi:
+    stack test
+-}
+
 module Test_Liveness (spec) where
 
 import Test.Hspec

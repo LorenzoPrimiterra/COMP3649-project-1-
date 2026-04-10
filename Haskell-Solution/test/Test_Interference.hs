@@ -1,3 +1,12 @@
+{-
+  Test_Interference.hs
+  Automated test cases for Interference.hs
+  Tests interference graph building and coloring.
+
+  Usage in GHCi:
+    stack test
+-}
+
 module Test_Interference (spec) where
 
 import Test.Hspec

@@ -1,3 +1,11 @@
+{-
+  Test_CodeGen.hs
+  Automated test cases for CodeGen.hs
+  Each test matches a Python input file — same IR, same assignments,
+  same expected assembly output.
+  Usage in GHCi:
+    stack test
+-}
 module Test_CodeGen (spec) where
 
 import Test.Hspec
