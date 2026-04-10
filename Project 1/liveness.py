@@ -1,62 +1,41 @@
 """
-liveness.py
-===========
+Name: liveness.py
+======================
+
 Computes which variables are "alive" at each point in a block
 of instructions — a variable is alive if its current value will
 be needed by a future instruction.
 
-Role in the Pipeline
---------------------
-Called by intermediate.py after the block has been parsed:
+Pipeline:
+================
+(Called by intermediate.py after the block has been parsed:)
 
-    intermediate.py  ← triggers liveness via compute_liveness_info()
-          ↓
-    liveness.py      ← walks instructions backwards, fills live_before/live_after
-          ↓
-    intermediate.py  ← stores the results back onto the code object
-          ↓
-    interference.py  ← reads live_before/live_after to build the interference graph
+    (1) intermediate.py  <- triggers liveness via compute_liveness_info().
+          
+   (2)  liveness.py      <-  walks instructions backwards, fills live_before/live_after.
+          
+  (3)  intermediate.py  <-  stores the results back onto the code object.
+          
+  (4)  interference.py  <-  reads live_before/live_after to build the interference graph.
 
-Responsibilities
-----------------
-- Determine which variables are defined (written) by each instruction
-- Determine which variables are used (read) by each instruction
-- Walk backwards through the instruction list to compute liveness sets
-- Return live_before and live_after aligned with the instruction list
-- Distinguish variables from constants so constants are never tracked
+Responsibilities:
+=========================
+- Determine which variables are defined (written) by each instruction.
+- Determine which variables are used (read) by each instruction.
+- Walk backwards through the instruction list to compute liveness sets.
+- Return live_before and live_after aligned with the instruction list.
+- Distinguish variables from constants so constants are never tracked.
 
-Out of Scope
-------------
-- Storing liveness results (intermediate.py)
-- Parsing instructions (parser.py)
-- Building interference graphs or assigning registers (interference.py)
-- Generating assembly instructions (target.py)
-
-Key Abstractions
-----------------
-is_var(tok)
-    Returns True if a token is a variable name rather than a constant.
-
-defs(op)
-    Returns the set of variables written by an instruction.
-
-uses(op)
-    Returns the set of variables read by an instruction.
-
-compute_liveness(ops, live_out)
-    Walks backwards through the instruction list and returns
-    live_before and live_after for each instruction.
-
-Dependencies
-------------
+Associated Dependencies:
+==============================
 - intermediate.py  : Operation objects are passed in and read here
 
-Usage Example
--------------
+Usage Example:
+================
 NA
 
-Notes
------
+Misc Notes:
+=================
 - Liveness is computed in a single backwards pass since the input
   is a single basic block with no branches or loops.
 - Constants are intentionally ignored — - oonly variables have live ranges.
