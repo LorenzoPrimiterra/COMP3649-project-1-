@@ -1,70 +1,69 @@
-{-
-  Test_Target.hs
+module Test_Target (spec) where
 
-  Hard-coded test cases for Target.hs
-  Tests AsmInstruction and TargetCode ADTs.
-
-  Usage in GHCi:
-    :load Test_Target
-    test1
-    putStr test8
--}
-
-module Test_Target where
-
+import Test.Hspec
 import Target
 
--- | ADD with immediate
-test1 :: String
-test1 = showAsmInstruction (mkAsmInstruction "ADD" (Just "#1") (Just "R0"))
--- expected: "ADD #1,R0"
+spec :: Spec
+spec = do
 
--- | MOV variable to register
-test2 :: String
-test2 = showAsmInstruction (mkAsmInstruction "MOV" (Just "a") (Just "R0"))
--- expected: "MOV a,R0"
+  -- ************************************************************
+  -- AsmInstruction tests
+  -- ************************************************************
+  describe "Testing showAsmInstruction" $ do
 
--- | SUB between registers
-test3 :: String
-test3 = showAsmInstruction (mkAsmInstruction "SUB" (Just "R1") (Just "R0"))
--- expected: "SUB R1,R0"
+    it "Test 1: ADD with immediate" $
+      showAsmInstruction (mkAsmInstruction "ADD" (Just "#1") (Just "R0"))
+        `shouldBe` "ADD #1,R0"
 
--- | MUL with negative immediate
-test4 :: String
-test4 = showAsmInstruction (mkAsmInstruction "MUL" (Just "#-1") (Just "R0"))
--- expected: "MUL #-1,R0"
+    it "Test 2: MOV variable to register" $
+      showAsmInstruction (mkAsmInstruction "MOV" (Just "a") (Just "R0"))
+        `shouldBe` "MOV a,R0"
 
--- | DIV between registers
-test5 :: String
-test5 = showAsmInstruction (mkAsmInstruction "DIV" (Just "R2") (Just "R1"))
--- expected: "DIV R2,R1"
+    it "Test 3: SUB between registers" $
+      showAsmInstruction (mkAsmInstruction "SUB" (Just "R1") (Just "R0"))
+        `shouldBe` "SUB R1,R0"
 
--- | Empty target code
-test6 :: String
-test6 = showTargetCode emptyTargetCode
--- expected: ""
+    it "Test 5: MUL with negative immediate" $
+      showAsmInstruction (mkAsmInstruction "MUL" (Just "#-1") (Just "R0"))
+        `shouldBe` "MUL #-1,R0"
 
--- | Build a small program: MOV a,R0 then ADD #1,R0
-test7 :: String
-test7 = showTargetCode
-  (addInstructions
-    [ mkAsmInstruction "MOV" (Just "a") (Just "R0")
-    , mkAsmInstruction "ADD" (Just "#1") (Just "R0")
-    ]
-    emptyTargetCode)
--- expected: "MOV a,R0\nADD #1,R0\n"
+    it "Test 6: DIV between registers" $
+      showAsmInstruction (mkAsmInstruction "DIV" (Just "R2") (Just "R1"))
+        `shouldBe` "DIV R2,R1"
 
--- | Longer program matching spec example style
-test8 :: String
-test8 = showTargetCode
-  (addInstructions
-    [ mkAsmInstruction "MOV" (Just "a") (Just "R0")
-    , mkAsmInstruction "ADD" (Just "#1") (Just "R0")
-    , mkAsmInstruction "MOV" (Just "R0") (Just "a")
-    , mkAsmInstruction "MUL" (Just "#4") (Just "R0")
-    ]
-    emptyTargetCode)
 
--- To run: ghci Test_Target.hs
--- Then type test1, test2, etc. to check output
--- Use putStr for multi-line output: putStr test7
+  -- ************************************************************
+  -- TargetCode tests
+  -- ************************************************************
+  describe "Testing showTargetCode" $ do
+
+    it "Test 7: empty target code is empty string" $
+      showTargetCode emptyTargetCode
+        `shouldBe` ""
+
+    it "Test 8: small program: MOV then ADD" $
+      showTargetCode
+        (addInstructions
+          [ mkAsmInstruction "MOV" (Just "a") (Just "R0")
+          , mkAsmInstruction "ADD" (Just "#1") (Just "R0")
+          ]
+          emptyTargetCode)
+      `shouldBe`
+        "MOV a,R0\nADD #1,R0\n"
+
+    it "Test 9: longer program sequence" $
+      showTargetCode
+        (addInstructions
+          [ mkAsmInstruction "MOV" (Just "a") (Just "R0")
+          , mkAsmInstruction "ADD" (Just "#1") (Just "R0")
+          , mkAsmInstruction "MOV" (Just "R0") (Just "a")
+          , mkAsmInstruction "MUL" (Just "#4") (Just "R0")
+          ]
+          emptyTargetCode)
+      `shouldBe`
+        (unlines
+          [ "MOV a,R0"
+          , "ADD #1,R0"
+          , "MOV R0,a"
+          , "MUL #4,R0"
+          ])

@@ -20,13 +20,14 @@ module Interference
   , getAssignments
   , showInterferenceTable
   , showColouring
+  , adjacency
   ) where
 
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.List ((\\), sort)
+import Data.List (sort)
 
 
 -- ************************************************************
@@ -119,6 +120,13 @@ addEdges g liveSet =
            g
            [(x,y) | x <- vs, y <- vs, x < y]
 
+-- ************************************************************
+-- neighbours — helper for grabbing the adjacency map of a graph
+-- ************************************************************
+-- | Grabs the full adjacency map for a graph.
+
+adjacency :: Graph -> Map String (Set String)
+adjacency = nodes
 
 -- ************************************************************
 -- colourGraph — matches allocate_registers
