@@ -1,4 +1,0 @@
-MOV r,R0
-MOV s,R1
-ADD R1,R0
-MOV R0,r
