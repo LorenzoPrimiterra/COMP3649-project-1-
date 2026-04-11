@@ -1,30 +1,68 @@
 {-
-  Main.hs — Maps to: main.py
+Name: Main.hs
+===============
 
-  Entry point. Orchestrates the full pipeline:
-    1. Validate command-line args (num_regs, filename)
-    2. Read and parse input file        (Parser)
-    3. Compute liveness                  (Liveness)
-    4. Build interference graph          (Interference)
-    5. Attempt register allocation       (Interference)
-    6. Generate target assembly          (CodeGen)
-    7. Print tables, write .s file       (Target)
+Pipeline:
+===============
+Main.hs drives the entire project and calls each associated stage:
 
-  Exit codes: 0 = success, 1 = allocation failed, 2 = bad input
+    (1)  Main.hs            <- validates args, reads file, sequences all stages
 
-  I/O approach:
-    Uses readFile (as recommended in the Haskell Solution Development Guidance)
-    to read the entire input file as a String. The string is then passed to the
-    Parser module (readIR) to produce an IntermediateCode value.
+    (2)  Parser.hs        <-  parses input into an IntermediateCode object
 
-  Error handling approach:
-    Uses try/catch style from Exercise Set 6 (Control.Exception.try) to
-    gracefully catch exceptions at each stage:
-      - File reading errors (e.g. file not found)
-      - Parse errors (raised via error in Parser.hs)
-      - Pipeline errors (unexpected failures during liveness/codegen)
-    Each caught exception produces a descriptive message to stderr and
-    exits with code 2, rather than an unhandled stack trace.
+    (3)  Liveness.hs      <- annotates each instruction with live_before/live_after
+
+    (4)  Interference.hs  <- builds interference graph, performs register allocation
+
+    (5)  CodeGen.hs       <- generates target assembly from coloured graph
+
+    (6)  stdout / .s file  <- prints interference table, colouring, and register
+                             assignments; writes assembly to <filename>.s
+
+Responsibilities:
+=====================
+-  Validates command-line arguments (num_regs must be a positive integer, filename required).
+-  Reads the input file using readFile and forces full evaluation via evaluate.
+- Passes file contents to Parser (readIR) to produce an IntermediateCode value.
+- Triggers liveness analysis on the parsed code (computeLiveness).
+-   Collects all variable names from the IR block (collectVars).
+- Builds the interference graph and attempts graph coloring (register allocation)
+-  On success: generates target assembly, writes it to <filename>.s, prints assignments.
+- On failure: reports that allocation failed (not enough registers).
+- Returns appropriate exit codes (0 = success, 1 = allocation failed, 2 = bad input).
+
+Associated Dependencies:
+======================
+(1) System.Environment   <- getArgs to retrieve command-line arguments
+(2)  System.Exit        <- exitWith, ExitCode for structured exit codes
+(3)  System.IO         <- hPutStrLn, stderr for error reporting
+(4)  Control.Exception    <- try, evaluate, SomeException for safe error handling
+(5)  Text.Read           <- readMaybe for safe integer parsing (no crash on bad input)
+(6)  Intermediate.hs     <- IntermediateCode type; getOpList, getLiveOut,
+                             getDestination, getOperand1, getOperand2, showIntermediateCode
+(7)  Target.hs            <- showTargetCode to serialise assembly output
+(8)  Liveness.hs           <- computeLiveness, isVar
+(9)  Interference.hs      <- buildGraph, colourGraph, getAssignments,
+                             showInterferenceTable, showColouring
+(10) CodeGen.hs           <- generateTarget to produce target assembly
+(11) Parser.hs             <- readIR to turn raw file text into IntermediateCode
+(12) Data.Set / Data.Map  <- Set for live-out sets; Map for register assignments
+(13) Data.List            <- nub, sort for deduplication in collectVars
+
+Usage Example:
+================
+    $ ./gen 3 my_program.txt
+
+Misc Notes:
+================
+- Exit code 0: allocation succeeded, assignments printed and .s file written
+- Exit code 1: allocation failed (not enough registers)
+- Exit code 2: bad arguments, file not found, or malformed input file
+
+- I/O approach: uses readFile (lazy) then forces full evaluation with evaluate
+   so that file-not-found errors surface inside try rather than later
+- Error handling: uses Control.Exception.try at each pipeline stage so every
+  failure produces a descriptive stderr message instead of a raw stack trace
 -}
 
 module Main (main) where
@@ -56,13 +94,22 @@ import qualified Data.Map as Map
 import Data.List (nub, sort)
 
 
--- ************************************************************
--- collectVars — gathers all variable names from an IR block
--- ************************************************************
--- | Collects every variable that appears in the block:
---   destinations, operands, and live-out variables.
---   Filters out constants using isVar, then sorts and deduplicates.
+-- =============================================================================================================
+{-
+collectVars
+------------
+Gathers every variable name that appears anywhere in an IR block:
+destinations, operands, and live-out variables.
 
+Responsibilities:
+- Pull all tokens from destinations, operand1, and operand2 fields of each Operation
+- Include all live-out variable names from the IntermediateCode
+- Filter out numeric constants using isVar
+- Deduplicate and sort the result for a canonical ordering
+
+Returns:
+  A sorted, deduplicated list of variable name strings present in the block
+-}
 collectVars :: IntermediateCode -> [String]
 collectVars code =
   let ops     = getOpList code
@@ -74,16 +121,38 @@ collectVars code =
                      ) ops
   in sort (nub (filter isVar allTokens))
 
+-- ===================================================================================================================
+{-
+runPipeline
+--------------
 
--- ************************************************************
--- runPipeline — full pipeline for a parsed IntermediateCode
--- ************************************************************
--- | Runs liveness analysis, builds the interference graph,
---   attempts graph colouring, and (on success) generates
---   target assembly and writes it to <filename>.s.
---
---   Returns True if allocation succeeded, False otherwise.
+Executes the full compilation pipeline for a parsed IntermediateCode value:
+ liveness analysis, interference graph construction, graph colouring (register
+ allocation), target assembly generation, and output.
 
+Responsibilities:
+- Compute live_before / live_after sets for every instruction via computeLiveness.
+- Collect all variable names with collectVars.
+- Build live sets for graph construction:
+       liveSets = [live_before[0]] ++ liveAfter
+       (mirrors the Python build_interference_graph logic).
+- Build the interference graph with buildGraph.
+- Print the interference table to stdout.
+- Attempt graph colouring with colourGraph using numRegs colours.
+
+- On failure: print the (partial) colouring table and a FAILED message; return False.
+- On success: print the colouring table and a SUCCESS message; generate target
+  assembly via generateTarget; write assembly to <filename>.s; print
+  variable -> register assignments; return True
+
+Returns:
+  True  if graph colouring succeeded (allocation possible with numRegs registers)
+  False if colouring failed (not enough registers)
+
+Raises:
+  Any exception from liveness/codegen stages propagates up to be caught
+  by the try wrapper in main
+-}
 runPipeline :: Int -> IntermediateCode -> String -> IO Bool
 runPipeline numRegs code filename = do
 
@@ -133,17 +202,34 @@ runPipeline numRegs code filename = do
       return True
 
 
--- ************************************************************
--- main — matches main() in main.py
--- ************************************************************
--- | Entry point. Retrieves command-line arguments using getArgs,
---   validates them, reads and parses the input file, and runs
---   the full register allocation pipeline.
---
---   Uses try (from Control.Exception) at each stage to catch
---   exceptions 
+-- =========================================================================================================================
+    {-
+main  
+------
+Entry point. Retrieves command-line arguments, validates them, reads and
+parses the input file, and runs the full register allocation pipeline.
 
+Responsibilities:
+- Retrieve args with getArgs; require exactly two: <num_regs> and <filename>.
+- Validate num_regs with readMaybe (safe — no crash on non-integer input).
+- Read the input file with readFile; force full evaluation via evaluate so
+  file-not-found errors are caught by try rather than deferred lazily
+- Parse file contents with readIR; force full evaluation via
+  evaluate (length (showIntermediateCode code)) to ensure ALL parse errors
+  (including those hiding in unevaluated thunks) surface here rather than
+  later in the pipeline
+- Delegate pipeline execution to runPipeline, wrapped in try to catch
+  any unexpected failures during liveness or codegen
+- Map pipeline result to the appropriate exit code
 
+Exit Codes:
+  ExitSuccess   (0) — allocation succeeded; .s file written
+  ExitFailure 1 (1) — allocation failed (graph not k-colourable)
+  ExitFailure 2 (2) — bad arguments, file not found, or malformed input
+
+Raises:
+NA
+-}
 main :: IO ()
 main = do
   args <- getArgs
