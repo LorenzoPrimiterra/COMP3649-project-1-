@@ -1,35 +1,26 @@
 """
-errors.py
+Name: errors.py
 ================
 Defines a custom exception that is raised whenever the input file is malformed. 
 
-Role in the Pipeline
---------------------
+Pipeline:
+=======================
 Supporting helper files.
 
-Responsibilities
-----------------
+Associated Responsibilities:
+========================
 NA 
 
-Out of Scope
-------------
+Dependencies:
+==================
 NA
 
-Key Abstractions
-----------------
-class ParseError(Exception):
-    Raised when the input file format is invalid.
-
-Dependencies
-------------
-NA
-
-Usage Example
--------------
+Usage Example:
+================
 NA 
 
-Notes
------
+Misc Notes:
+=============
 NA
 
 """
