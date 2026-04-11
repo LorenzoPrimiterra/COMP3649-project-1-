@@ -2,64 +2,43 @@ from typing import Set, Dict, List
 from liveness import is_var
 
 """
-interference.py
-===============
+Name: interference.py
+=============================
 Builds a graph of variables that are alive at the same time and
 therefore cannot share a register, then assigns registers to all
 variables by coloring the graph.
 
-Role in the Pipeline
---------------------
+Pipeline:
+==================
 Receives the liveness-annotated code object from intermediate.py
 and produces the final register assignments:
 
-    intermediate.py  ← provides oplist, live_out, live_before, live_after
-          ↓
-    interference.py  ← builds interference graph from liveness sets
-          ↓
-    interference.py  ← colors the graph to assign registers
-          ↓
-    main.py          ← prints the final register assignments
+   (1) intermediate.py  <- provides oplist, live_out, live_before, live_after
+          
+   (2) interference.py  <- builds interference graph from liveness sets
+          
+    (3) interference.py  <-  colors the graph to assign registers
+          
+    (4) main.py  <- prints the final register assignments
 
-Responsibilities
-----------------
-- Collect all variables that appear in the block
-- Build an undirected graph where an edge means two variables
-  are alive at the same time and cannot share a register
-- Assign registers to variables by coloring the graph using backtracking
-- Provide safety checks to ensure no two connected variables share a register
+Responsibilities:
+==========================
+- Collect all variables that appear in the block.
+- Build an undirected graph where an edge means two variables.
+  are alive at the same time and cannot share a register.
+- Assign registers to variables by coloring the graph using backtracking.
+- Provide safety checks to ensure no two connected variables share a register.
 
-Out of Scope
-------------
-- Computing liveness (liveness.py)
-- Parsing instructions (parser.py)
-- Storing instructions or liveness results (intermediate.py)
-- Generating assembly instructions (target.py)
-
-Key Abstractions
-----------------
-InterferenceGraph
-    Undirected graph where nodes are variables and edges represent
-    interference — two variables that cannot share a register.
-
-build_interference_graph(code)
-    Constructs and returns an InterferenceGraph from a liveness
-    annotated IntermediateCode object.
-
-allocate_registers(graph, num_regs)
-    Attempts to color the graph using at most num_regs colors
-    via backtracking. Returns True if successful, False if not.
-
-Dependencies
-------------
+Associated Dependencies:
+============================
 - liveness.py  : is_var() used to filter constants from variable lists
 
-Usage Example
--------------
+Usage Example:
+===================
 NA
 
-Notes
------
+Misc Notes:
+==============
 NA
 """
 
