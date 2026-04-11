@@ -74,7 +74,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.List (sort)
+import Data.List (sort, intercalate)
 
 -- ============================================================================================================
 {-
@@ -99,6 +99,7 @@ data Graph = Graph
 getAssignments
 ---------------
 Returns the current register assignment map from a Graph.
+
 (Maps to: graph.assignments in Python.)
 
 Returns:
@@ -106,7 +107,7 @@ Returns:
   Empty if colourGraph has not yet been called or allocation failed.
 -}
 getAssignments :: Graph -> Map String Int
-getAssignments = assignments
+getAssignments g = assignments g
 
 
 -- ============================================================================================================
@@ -150,13 +151,12 @@ Returns:
   if v1 == v2).
 -}
 addEdge :: String -> String -> Graph -> Graph
-addEdge v1 v2 g
-  | v1 == v2 = g
+addEdge v1 v2 (Graph ns asg)
+  | v1 == v2  = Graph ns asg
   | otherwise =
-      let ns = nodes g
-          ns' = Map.adjust (Set.insert v2) v1 $
-                Map.adjust (Set.insert v1) v2 ns
-      in g { nodes = ns' }
+      let ns' = Map.adjust (Set.insert v2) v1
+              $ Map.adjust (Set.insert v1) v2 ns
+      in Graph ns' asg
 
 
 -- =============================================================================================================
@@ -177,7 +177,7 @@ Returns:
   simultaneously live at any point in the block.
 -}
 buildGraph :: [String] -> [Set String] -> Graph
-buildGraph vars = foldl addEdges (emptyGraph vars)
+buildGraph vars liveSets = foldl addEdges (emptyGraph vars) liveSets
 
 
 -- ============================================================================================================
@@ -200,9 +200,8 @@ Returns:
 addEdges :: Graph -> Set String -> Graph
 addEdges g liveSet =
   let vs = Set.toList liveSet
-  in foldl (\acc (x,y) -> addEdge x y acc)
-           g
-           [(x,y) | x <- vs, y <- vs, x < y]
+      pairs = [(x,y) | x <- vs, y <- vs, x < y]
+  in foldl (\acc (x,y) -> addEdge x y acc) g pairs
 
 -- ============================================================================================================
 {-
@@ -216,7 +215,7 @@ Returns:
   computations that need the raw neighbour sets.
 -}
 adjacency :: Graph -> Map String (Set String)
-adjacency = nodes
+adjacency g = nodes g
 
 -- ============================================================================================================
 {-
@@ -247,53 +246,31 @@ Misc:
     safe        —  checks whether assigning colour c to v conflicts with neighbours
 -}
 colourGraph :: Int -> Graph -> Maybe Graph
-colourGraph k g =
-  case colour (Map.keys (nodes g)) (assignments g) of
-    Nothing  -> Nothing
-    Just asg -> Just g { assignments = asg }
+colourGraph k (Graph ns asg) =
+  let allVars = Map.keys ns
+      regList = [0..k-1]
+  in case assignColours allVars asg of
+       Nothing     -> Nothing
+       Just newAsg -> Just (Graph ns newAsg)
   where
-    colours = [0..k-1]
+    -- try to assign a colour to every variable in the list
+    assignColours [] currentAsg = Just currentAsg
+    assignColours (v:vs) currentAsg =
+      tryEachReg v vs currentAsg regList
 
-    -- ********************************************************
-    -- colour — recursive colour solver
-    -- ********************************************************
-    -- | Assign registers to all variables in the list.
-    --   Base case: empty list means all variables coloured successfully.
-
-    colour :: [String] -> Map String Int -> Maybe (Map String Int)
-    colour [] asg = Just asg
-
-    colour (v:vs) asg =
-      tryColours v vs asg colours
-
-
-    -- ********************************************************
-    -- tryColours — try all registers for one variable
-    -- ********************************************************
-    -- | Attempts each register in turn until a valid assignment is found.
-    --   Returns Nothing if all colours are exhausted without a safe choice.
-
-    tryColours :: String -> [String] -> Map String Int -> [Int]
-               -> Maybe (Map String Int)
-    tryColours _ _ _ [] = Nothing
-    tryColours v vs asg (c:cs)
-      | safe v c asg =
-          case colour vs (Map.insert v c asg) of
+    -- try each register for variable v, backtrack if none work
+    tryEachReg _ _ _ [] = Nothing
+    tryEachReg v vs currentAsg (c:cs)
+      | isSafe v c currentAsg =
+          case assignColours vs (Map.insert v c currentAsg) of
             Just sol -> Just sol
-            Nothing  -> tryColours v vs asg cs
-      | otherwise = tryColours v vs asg cs
+            Nothing  -> tryEachReg v vs currentAsg cs
+      | otherwise = tryEachReg v vs currentAsg cs
 
-
-    -- ********************************************************
-    -- safe — matches is_safe(var, color) in interference.py
-    -- ********************************************************
-    -- | Check whether assigning colour c to variable v is valid.
-    --   A colour is safe if no neighbour of v is already assigned c.
-
-    safe :: String -> Int -> Map String Int -> Bool
-    safe v c asg =
-      let neighbors = Set.toList (nodes g Map.! v)
-      in all (\n -> Map.lookup n asg /= Just c) neighbors
+    -- check that no neighbour of v already has colour c
+    isSafe v c currentAsg =
+      let neighbs = Set.toList (ns Map.! v)
+      in all (\n -> Map.lookup n currentAsg /= Just c) neighbs
 
 
 -- ============================================================================================================
@@ -317,14 +294,11 @@ Returns:
   A formatted multi - line String ending with a trailing newline
 -}
 showInterferenceTable :: Graph -> String
-showInterferenceTable g =
-  let vars = sort (Map.keys (nodes g))
+showInterferenceTable (Graph ns _) =
+  let vars = sort (Map.keys ns)
       showRow v =
-        let neighbors = sort (Set.toList (Map.findWithDefault Set.empty v (nodes g)))
-        in v ++ ": " ++ commaJoin neighbors
-      commaJoin []     = ""
-      commaJoin [x]    = x
-      commaJoin (x:xs) = x ++ ", " ++ commaJoin xs
+        let neighbs = sort (Set.toList (Map.findWithDefault Set.empty v ns))
+        in v ++ ": " ++ intercalate ", " neighbs
   in "--- Variable Interference Table ---\n" ++
      unlines (map showRow vars)
 
@@ -334,7 +308,6 @@ showInterferenceTable g =
 showColouring
 --------------
 Formats the register colouring as a human-readable table for stdout.
-
 
 Output format:
      R0: a b
@@ -351,11 +324,9 @@ Returns:
   Registers with no assigned variables appear as empty lines (e.g. "R2 ").
 -}
 showColouring :: Graph -> Int -> String
-showColouring g k =
-  let asg = assignments g
-      groups = Map.fromList [(r, []) | r <- [0..k-1]]
-      filled =
-        Map.foldrWithKey
-          (\var r acc -> Map.adjust (var:) r acc) groups asg
-  in unlines
-       [ "R" ++ show r ++ ": " ++ unwords (Map.findWithDefault [] r filled) | r <- [0..k-1]]
+showColouring (Graph _ asg) k =
+  let -- build a list of (register, [variables]) for each register
+      getVarsForReg r = [v | (v, regNum) <- Map.toList asg, regNum == r]
+  in unlines [ "R" ++ show r ++ ": " ++ unwords (getVarsForReg r)
+             | r <- [0..k-1]
+             ]

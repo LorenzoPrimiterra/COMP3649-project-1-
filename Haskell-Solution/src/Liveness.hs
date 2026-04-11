@@ -43,9 +43,8 @@ NA
 Misc Notes:
 ================
 - Exports only pure functions — no ADT needed, just set computations
-- computeLiveness uses foldr to walk bottom-to-top (right-to-left), mirroring
-  the Python loop: for i in range(n - 1, -1, -1)
-- foldr with (:) accumulation naturally produces results in forward order
+- computeLiveness reverses the instruction list and recurses through it,
+  then reverses the results back to get forward order
 - isVar is also imported and used by Parser.hs for operand/destination validation
 -}
 
@@ -61,9 +60,10 @@ import Intermediate
   ( Operation, getDestination, getOperand1, getOperand2 )
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Char (isDigit, isLower)
 
 -- | (live_before, live_after) for each instruction, indexed by position
-type LiveSets = ( [Set String], [Set String] )   -- live_before & live_after
+type LiveSets = ( [Set String], [Set String] )
 
 -- =============================================================================================================
 {-
@@ -86,9 +86,11 @@ Returns:
   False if the token is a constant (integer literal) or otherwise invalid
 -}
 isVar :: String -> Bool
-isVar [c]        = c /= 't' && c `elem` ['a'..'z']       -- single lowercase letter, not 't'
-isVar ('t':rest) = not (null rest) && all (`elem` ['0'..'9']) rest  -- t followed by digits
-isVar _          = False
+isVar [c] = isLower c && c /= 't'
+isVar ('t':rest)
+  | null rest    = False
+  | otherwise    = all isDigit rest
+isVar _ = False
 
 
 -- =============================================================================================================
@@ -131,13 +133,15 @@ Returns:
 -}
 uses :: Operation -> Set String
 uses op =
-  let u1 = case getOperand1 op of
-              s | isVar s   -> Set.singleton s
-                | otherwise -> Set.empty
-      u2 = case getOperand2 op of
-              Just s | isVar s   -> Set.singleton s
-              _                  -> Set.empty
-  in Set.union u1 u2
+  let op1 = getOperand1 op
+      op2 = getOperand2 op
+      -- check if operand1 is a variable, if so add it
+      s1 = if isVar op1 then Set.singleton op1 else Set.empty
+      -- operand2 is a Maybe, so we need to unwrap it first
+      s2 = case op2 of
+             Just v  -> if isVar v then Set.singleton v else Set.empty
+             Nothing -> Set.empty
+  in Set.union s1 s2
 
 
 -- =============================================================================================================
@@ -148,6 +152,7 @@ computeLiveness
 Walks backwards through the instruction list and computes live_before and
 live_after sets for each instruction, returning them aligned with the
 original instruction order.
+
 (Maps to: compute_liveness(ops, live_out) in liveness.py)
 
 The backwards recurrence at each instruction i:
@@ -157,12 +162,11 @@ The backwards recurrence at each instruction i:
 
 Responsibilities:
 - Accept the instruction list and the initial live-out set for the block
-- Use foldr to process instructions right-to-left (bottom -> top), mirroring
-  the Python loop ( for i in range(n - 1, -1, -1))
+- Reverse the instruction list and recurse through it to process bottom-to-top,
+  mirroring the Python loop ( for i in range(n - 1, -1, -1))
 - compute live_after and live_before using the recurrence above
-- Accumulate (live_before_i, live_after_i) pairs with (:) so the result
-  comes out in forward order
-- Split the pair list into two parallel lists and return as LiveSets
+- Reverse the resulting lists back to forward order
+- Return as LiveSets
 
 Returns:
   A LiveSets tuple (live_before, live_after) where:
@@ -172,32 +176,18 @@ Returns:
   Both lists are aligned with ops by index.
 -}
 computeLiveness :: [Operation] -> Set String -> LiveSets
-computeLiveness ops live_out =
-  let
-    -- foldr processes right-to-left (bottom -> top), matching the Python loop:
-    --   for i in range(n - 1, -1, -1):
-    --
-    -- accumulator: (current_live, list of (live_before_i, live_after_i) pairs)
-    -- We build the list with (:) so it comes out in forward order automatically.
-
-    step :: Operation -> (Set String, [(Set String, Set String)])
-                      -> (Set String, [(Set String, Set String)])
-    step op (current_live, pairs) =
-      let
-        live_after_i  = current_live                              -- live_after[i] = set(current_live)
-
-        d             = defs op                                   -- d = defs(ops[i])
-        u             = uses op                                   -- u = uses(ops[i])
-
-        live_before_i = Set.union u (Set.difference live_after_i d)  -- live_before[i] = u | (live_after[i] - d)
-
-        current_live' = live_before_i                             -- current_live = live_before[i]
-      in
-        (current_live', (live_before_i, live_after_i) : pairs)
-
-    (_final_live, pairs) = foldr step (live_out, []) ops
-
-    live_before = map fst pairs
-    live_after  = map snd pairs
-  in
-    (live_before, live_after)
+computeLiveness ops liveOut =
+  -- reverse the ops so we can walk left-to-right instead of right-to-left
+  -- (mirrors Python's range(n-1, -1, -1) but with recursion instead)
+  let (lbRev, laRev) = walkBackwards (reverse ops) liveOut
+  in  (reverse lbRev, reverse laRev)
+  where
+    -- process each instruction, carrying currentLive downward
+    walkBackwards [] _ = ([], [])
+    walkBackwards (op:rest) currentLive =
+      let la_i = currentLive
+          d    = defs op
+          u    = uses op
+          lb_i = Set.union u (Set.difference la_i d)
+          (restLB, restLA) = walkBackwards rest lb_i
+      in  (lb_i : restLB, la_i : restLA)

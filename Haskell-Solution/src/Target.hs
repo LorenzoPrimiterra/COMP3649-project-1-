@@ -36,11 +36,11 @@ module Target
 data AsmInstruction = Asm String (Maybe String) (Maybe String)
   deriving (Show)
 
--- | Constructor for all instruction forms
+-- constructor for creating an instruction
 mkAsmInstruction :: String -> Maybe String -> Maybe String -> AsmInstruction
-mkAsmInstruction = Asm
+mkAsmInstruction opcode src dst = Asm opcode src dst
 
--- Queries
+-- accessor functions
 getOpcode :: AsmInstruction -> String
 getOpcode (Asm o _ _) = o
 
@@ -50,11 +50,14 @@ getSrc (Asm _ s _) = s
 getDst :: AsmInstruction -> Maybe String
 getDst (Asm _ _ d) = d
 
--- Display
+-- format a single instruction as a string
+-- covers all four combinations of Maybe src / Maybe dst
 showAsmInstruction :: AsmInstruction -> String
 showAsmInstruction (Asm op Nothing  Nothing)  = op
 showAsmInstruction (Asm op (Just s) Nothing)  = op ++ " " ++ s
+showAsmInstruction (Asm op Nothing  (Just d)) = op ++ " " ++ d
 showAsmInstruction (Asm op (Just s) (Just d)) = op ++ " " ++ s ++ "," ++ d
+
 
 -- ============================================================
 -- TargetCode: full sequence of assembly instructions
@@ -63,33 +66,20 @@ showAsmInstruction (Asm op (Just s) (Just d)) = op ++ " " ++ s ++ "," ++ d
 data TargetCode = TCode [AsmInstruction]
   deriving (Show)
 
--- | Create an empty target code sequence
 emptyTargetCode :: TargetCode
 emptyTargetCode = TCode []
 
--- | Append a single instruction to the end
+-- add one instruction to the end
 addInstruction :: AsmInstruction -> TargetCode -> TargetCode
-addInstruction i (TCode is) = TCode (is ++ [i])
+addInstruction instr (TCode instrs) = TCode (instrs ++ [instr])
 
--- | Append a list of instructions to the end
+-- add a list of instructions to the end
 addInstructions :: [AsmInstruction] -> TargetCode -> TargetCode
-addInstructions new (TCode is) = TCode (is ++ new)
+addInstructions newInstrs (TCode instrs) = TCode (instrs ++ newInstrs)
 
--- | Get the list of instructions
 getInstructions :: TargetCode -> [AsmInstruction]
-getInstructions (TCode is) = is
+getInstructions (TCode instrs) = instrs
 
--- | Format the full target code for output to .s file
+-- format the full target code for writing to .s file
 showTargetCode :: TargetCode -> String
-showTargetCode (TCode is) = unlines (map showAsmInstruction is)
-
-
--- Test in GHCi:
-
--- > :load Target
--- > showAsmInstruction (mkAsmInstruction "ADD" (Just "#1") (Just "R0"))
--- "ADD #1,R0"
--- > let t = addInstruction (mkAsmInstruction "ADD" (Just "#1") (Just "R0")) (addInstruction (mkAsmInstruction "MOV" (Just "a") (Just "R0")) emptyTargetCode)
--- > putStr (showTargetCode t)
--- MOV a,R0
--- ADD #1,R0
+showTargetCode (TCode instrs) = unlines (map showAsmInstruction instrs)
