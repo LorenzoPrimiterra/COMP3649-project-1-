@@ -1,12 +1,12 @@
 """
-codegen.py
+Name: codegen.py
 ==========
 
 Generates target assembly code from the intermediate three-address code
 representation after register allocation has been completed.
 
-Role in the Pipeline
---------------------
+Pipeline:
+==============
 This module is the final translation stage of the imperative compiler backend.
 It takes:
 - an IntermediateCode object containing the parsed three-address instructions
@@ -16,24 +16,23 @@ It takes:
 It then generates a TargetCode object containing assembly instructions for
 the target architecture.
 
-Pipeline overview:
 
-    parser.py        ← reads and validates the input file
-          ↓
-    intermediate.py  ← stores the three-address instruction sequence
-          ↓
-    liveness.py      ← computes live_before and live_after sets
-          ↓
-    interference.py  ← builds the interference graph and assigns registers
-          ↓
-    codegen.py       ← translates intermediate code into assembly language
-          ↓
-    target.py        ← stores and formats the generated assembly sequence
-          ↓
-    output file      ← written as <filename>.s
+   (1) parser.py        <- reads and validates the input file
+          
+  (2)   intermediate.py  <- stores the three-address instruction sequence
+          
+  (3)  liveness.py      <-  computes live_before and live_after sets
+          
+  (3)  interference.py  <- builds the interference graph and assigns registers
+          
+  (4)  codegen.py       <- translates intermediate code into assembly language
+          
+  (5)  target.py        <-  stores and formats the generated assembly sequence
+          
+  (6) output file      <-  written as <filename>.s
 
-Responsibilities
-----------------
+Associated Responsibilities:
+===============================
 - Translate each three-address instruction into equivalent assembly code.
 - Use register assignments to map program variables to machine registers.
 - Convert integer literals into immediate operands.
@@ -41,8 +40,21 @@ Responsibilities
 - Generate one or more target instructions for each intermediate instruction.
 - Store modified variables that are live on exit back to memory.
 
-Supported Intermediate-Code Forms
----------------------------------
+Associated Dependencies:
+==============================
+- intermediate.py <- provides IntermediateCode and Operation
+- target.py       <-  provides TargetCode and AsmInstruction
+- liveness.py     <- provides is_var() for distinguishing variables
+- errors.py       <- provides code-generation-related exceptions
+
+
+Misc Notes:
+==============
+- This module assumes register allocation has already succeeded.
+- The generated code is intended to be correct, not necessarily optimized.
+- Redundant instructions such as MOV R0,R0 may still appear; these do not
+  affect correctness and can be treated as a later optimization opportunity.
+
 This module handles the three instruction forms required by the project:
 
 1. Simple assignment
@@ -57,10 +69,7 @@ This module handles the three instruction forms required by the project:
 where op is one of:
       +, -, *, /
 
-Target Architecture Assumptions
--------------------------------
-The generated instructions follow the fictitious target CPU architecture
-described in the project specification. The supported assembly operations are:
+The supported assembly operations are:
 
 - MOV src,Ri
 - MOV Ri,dst
@@ -74,38 +83,6 @@ Operands may appear in:
 - absolute mode    (variable name)
 - register mode    (Ri)
 
-High-Level Algorithm
---------------------
-For a given basic block, code generation proceeds in three major steps:
-
-1. Load live-on-entry variables from memory into their assigned registers.
-2. Traverse the intermediate instruction sequence in program order and
-   translate each instruction into one or more assembly instructions.
-3. Store back any variables that are both live on exit and modified within
-   the block.
-
-Dependencies
-------------
-- intermediate.py : provides IntermediateCode and Operation
-- target.py       : provides TargetCode and AsmInstruction
-- liveness.py     : provides is_var() for distinguishing variables
-- errors.py       : provides code-generation-related exceptions
-
-Out of Scope
-------------
-- Parsing input files
-- Computing liveness information
-- Building the interference graph
-- Assigning registers
-- Performing register spilling
-- Performing assembly optimization
-
-Notes
------
-- This module assumes register allocation has already succeeded.
-- The generated code is intended to be correct, not necessarily optimized.
-- Redundant instructions such as MOV R0,R0 may still appear; these do not
-  affect correctness and can be treated as a later optimization opportunity.
 """
 from typing import Dict, Set, List
 from intermediate import IntermediateCode, Operation
