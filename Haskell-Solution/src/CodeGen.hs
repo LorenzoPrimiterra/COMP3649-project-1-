@@ -34,13 +34,8 @@ import Data.List (sort)
 import Data.Char (isDigit)
 
 
--- ************************************************************
--- reg — matches _reg(var, assignments) in codegen.py
--- ************************************************************
--- | Return the register name assigned to a variable.
---
---   e.g. reg "a" {a->0} = "R0"
-
+-- helper to look up the register name for a variable
+-- e.g. "a" with assignment {a->0} gives "R0"
 reg :: String -> Map String Int -> String
 reg var asg =
   case Map.lookup var asg of
@@ -48,25 +43,15 @@ reg var asg =
     Just n  -> "R" ++ show n
 
 
--- ************************************************************
--- isIntLiteral — matches _is_int_literal(tok) in codegen.py
--- ************************************************************
--- | Check whether a token is an integer literal.
-
+-- check whether a token is an integer literal (possibly negative)
 isIntLiteral :: String -> Bool
 isIntLiteral []       = False
 isIntLiteral ('-':cs) = not (null cs) && all isDigit cs
 isIntLiteral cs       = all isDigit cs
 
 
--- ************************************************************
--- asmOperand — matches _asm_operand(tok, assignments) in codegen.py
--- ************************************************************
--- | Convert an IR operand into an assembly operand.
---
---   Integer literal -> "#n"   (immediate)
---   Variable        -> "Rk"   (register)
-
+-- convert an IR operand to an assembly operand
+-- integer literals become immediate (#n), variables become register (Rk)
 asmOperand :: String -> Map String Int -> String
 asmOperand tok asg
   | isIntLiteral tok = "#" ++ tok
@@ -74,38 +59,20 @@ asmOperand tok asg
   | otherwise        = error ("CodeGen: unexpected operand: " ++ tok)
 
 
--- ************************************************************
--- asmOperandRaw — matches _asm_operand_raw(tok) in codegen.py
--- ************************************************************
--- | Convert an IR operand into a non-register assembly operand.
---   Always returns memory/immediate form (never a register).
---   Used when reloading a value that was clobbered.
-
+-- convert an IR operand to a non-register assembly operand
+-- always returns memory/immediate form, used when reloading a clobbered value
 asmOperandRaw :: String -> String
 asmOperandRaw tok
   | isIntLiteral tok = "#" ++ tok
   | otherwise        = tok
 
 
--- ************************************************************
--- Helper: build an AsmInstruction with src and dst
--- ************************************************************
-
-mkInstr :: String -> String -> String -> AsmInstruction
-mkInstr op src dst = mkAsmInstruction op (Just src) (Just dst)
+-- shorthand for building an instruction with src and dst
+makeInstr :: String -> String -> String -> AsmInstruction
+makeInstr opcode src dst = mkAsmInstruction opcode (Just src) (Just dst)
 
 
--- ************************************************************
--- opToAsm — matches op_to_asm(op, assignments) in codegen.py
--- ************************************************************
--- | Translate a single three-address IR instruction into assembly.
---
---   Supported forms:
---     dst = src           -> MOV src,Rdst  (skip if same register)
---     dst = -src          -> MOV src,Rdst; MUL #-1,Rdst
---     dst = src1 op src2  -> MOV src1,Rdst; OP src2,Rdst
---                            (with clobber handling)
-
+-- translate a single three-address IR instruction into assembly instructions
 opToAsm :: Operation -> Map String Int -> [AsmInstruction]
 opToAsm op asg =
   let dstR = reg (getDestination op) asg
@@ -113,14 +80,14 @@ opToAsm op asg =
   -- Case: dst = src (simple assignment)
   if getOperator op == Nothing && not (isUnaryNeg op) then
     let src = asmOperand (getOperand1 op) asg
-    in  if src == dstR then []                      -- skip MOV Rk,Rk
-        else [mkInstr "MOV" src dstR]
+    in  if src == dstR then []
+        else [makeInstr "MOV" src dstR]
 
   -- Case: dst = -src (unary negation)
   else if isUnaryNeg op then
     let src = asmOperand (getOperand1 op) asg
-    in  (if src /= dstR then [mkInstr "MOV" src dstR] else [])
-        ++ [mkInstr "MUL" "#-1" dstR]
+    in  (if src /= dstR then [makeInstr "MOV" src dstR] else [])
+        ++ [makeInstr "MUL" "#-1" dstR]
 
   -- Case: dst = src1 op src2 (binary operation)
   else
@@ -140,73 +107,54 @@ opToAsm op asg =
     in
     -- src1 already in dst register — skip the MOV
     if src1 == dstR then
-      [mkInstr asmOp src2 dstR]
+      [makeInstr asmOp src2 dstR]
 
     -- src2 is in dst register — MOV would clobber it
     else if src2 == dstR then
       case opStr of
-        -- Commutative: swap operands
-        "+" -> [mkInstr asmOp src1 dstR]
-        "*" -> [mkInstr asmOp src1 dstR]
-        -- SUB: negate then add (dst has src2, we want src1 - src2)
-        "-" -> [ mkInstr "MUL" "#-1" dstR
-               , mkInstr "ADD" src1 dstR
+        "+" -> [makeInstr asmOp src1 dstR]
+        "*" -> [makeInstr asmOp src1 dstR]
+        "-" -> [ makeInstr "MUL" "#-1" dstR
+               , makeInstr "ADD" src1 dstR
                ]
-        -- DIV: reload src2 from memory/immediate after overwriting
         "/" -> let src2Raw = case getOperand2 op of
                                Just s  -> asmOperandRaw s
                                Nothing -> error "CodeGen: missing operand2 for DIV"
-               in [ mkInstr "MOV" src1 dstR
-                  , mkInstr "DIV" src2Raw dstR
+               in [ makeInstr "MOV" src1 dstR
+                  , makeInstr "DIV" src2Raw dstR
                   ]
         _   -> error ("CodeGen: unsupported operator: " ++ opStr)
 
     -- No conflict — standard sequence
     else
-      [ mkInstr "MOV" src1 dstR
-      , mkInstr asmOp src2 dstR
+      [ makeInstr "MOV" src1 dstR
+      , makeInstr asmOp src2 dstR
       ]
 
 
--- ************************************************************
--- generateTarget — matches generate_target(code, assignments)
--- ************************************************************
--- | Generate target assembly for a single basic block.
---
---   1) Load vars live on entry into their assigned registers
---   2) Translate each IR operation to assembly
---   3) Store vars live on exit back to memory (only if modified)
---
---   Parameters:
---     liveBefore : list of live-before sets (from computeLiveness)
---     code       : the IntermediateCode block
---     asg        : variable-to-register assignments from graph colouring
-
+-- generate target assembly for a single basic block
+--   1) load vars live on entry into their assigned registers
+--   2) translate each IR operation to assembly
+--   3) store vars live on exit back to memory (only if modified)
 generateTarget :: [Set String] -> IntermediateCode -> Map String Int -> TargetCode
 generateTarget liveBefore code asg =
   let ops     = getOpList code
       liveOut = getLiveOut code
 
-      -- 1) Load live-on-entry variables into registers
+      -- 1) load live-on-entry variables into registers
       liveIn = if null ops then Set.empty else head liveBefore
-      loads  = [ mkInstr "MOV" v (reg v asg)
+      loads  = [ makeInstr "MOV" v (reg v asg)
                | v <- sort (Set.toList liveIn)
                , isVar v
                ]
 
-      -- 2) Translate each instruction
-      --    Also track which variables are written (dirty)
-      (bodyInstrs, dirty) = foldl translateOp ([], Set.empty) ops
+      -- 2) translate each instruction and track which vars get written
+      bodyInstrs = concatMap (\op -> opToAsm op asg) ops
+      dirty      = Set.fromList (map getDestination ops)
 
-      translateOp (instrs, d) op =
-        ( instrs ++ opToAsm op asg
-        , Set.insert (getDestination op) d
-        )
-
-      -- 3) Store live-on-exit variables back to memory
-      --    Only if they were modified in the block
+      -- 3) store live-on-exit variables back to memory if they were modified
       liveOutSet = Set.fromList liveOut
-      stores = [ mkInstr "MOV" (reg v asg) v
+      stores = [ makeInstr "MOV" (reg v asg) v
                | v <- sort (Set.toList (Set.intersection liveOutSet dirty))
                , isVar v
                ]

@@ -139,12 +139,12 @@ Adds an undirected interference edge between two variables.
 c(Maps to: add_edge(u, v) in interference.py)
 
 Meaning: v1 and v2 are simultaneously live at some point, so they
-cinterfere and cannot be assigned the same register.
+interfere and cannot be assigned the same register.
 
 Responsibilities:
 - Insert v2 into v1's neighbour set
 -  Insert v1 into v2's neighbour set (undirected — both directions)
-- Iignore self-edges (v1 == v2) silently
+- Ignore self-edges (v1 == v2) silently
 
 Returns:
   A new Graph with the edge added (or the original Graph unchanged
@@ -242,7 +242,7 @@ Returns:
 Misc:
   Contains three internal helpers defined:
     colour      — recursive entry point over the variable list
-    ctryColourss  —  iterates through candidate register colours for one variable
+    tryColours  —  iterates through candidate register colours for one variable
     safe        —  checks whether assigning colour c to v conflicts with neighbours
 -}
 colourGraph :: Int -> Graph -> Maybe Graph
@@ -285,13 +285,13 @@ Output format:
      a: b, t1
     b: a
 
-Responsibilitiies:
+Responsibilities:
 - Sort variables for a canonical display order
  - For each variable, sort and comma-join its neighbour set
 - Prepend the section header
 
 Returns:
-  A formatted multi - line String ending with a trailing newline
+  A formatted multi-line String ending with a trailing newline
 -}
 showInterferenceTable :: Graph -> String
 showInterferenceTable (Graph ns _) =

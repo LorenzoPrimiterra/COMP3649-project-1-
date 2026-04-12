@@ -114,11 +114,15 @@ collectVars :: IntermediateCode -> [String]
 collectVars code =
   let ops     = getOpList code
       liveOut = getLiveOut code
-      allTokens = liveOut
-                  ++ concatMap (\op ->
-                       [getDestination op, getOperand1 op]
-                       ++ maybe [] (:[]) (getOperand2 op)
-                     ) ops
+      -- grab all tokens from each operation
+      getTokens op =
+        let dst = getDestination op
+            op1 = getOperand1 op
+            op2 = getOperand2 op
+        in case op2 of
+             Just v  -> [dst, op1, v]
+             Nothing -> [dst, op1]
+      allTokens = liveOut ++ concatMap getTokens ops
   in sort (nub (filter isVar allTokens))
 
 -- ===================================================================================================================
