@@ -247,16 +247,15 @@ Misc:
 -}
 colourGraph :: Int -> Graph -> Maybe Graph
 colourGraph k (Graph ns asg) =
-  let allVars = Map.keys ns
-      regList = [0..k-1]
+  let allVars = Map.keys ns 
   in case assignColours allVars asg of
        Nothing     -> Nothing
        Just newAsg -> Just (Graph ns newAsg)
   where
     -- try to assign a colour to every variable in the list
+    regList = [0..k-1]
     assignColours [] currentAsg = Just currentAsg
-    assignColours (v:vs) currentAsg =
-      tryEachReg v vs currentAsg regList
+    assignColours (v:vs) currentAsg = tryEachReg v vs currentAsg regList
 
     -- try each register for variable v, backtrack if none work
     tryEachReg _ _ _ [] = Nothing
@@ -269,7 +268,7 @@ colourGraph k (Graph ns asg) =
 
     -- check that no neighbour of v already has colour c
     isSafe v c currentAsg =
-      let neighbs = Set.toList (ns Map.! v)
+      let neighbs = Set.toList (Map.findWithDefault Set.empty v ns )
       in all (\n -> Map.lookup n currentAsg /= Just c) neighbs
 
 
